@@ -1,147 +1,59 @@
-//This file makes the form where the user enters their PC parts
+import { useCases } from '../data/useCases'
 
-import { useState } from "react";
-
-function SpecsForm({ onSubmit }) {
-  //This stores what the user is typing into the form
-  const [formData, setFormData] = useState({
-    cpu: "",
-    gpu: "",
-    ram: "",
-    budget: "",
-    useCase: "",
-    motherboard: "",
-    psu: "",
-    caseName: "",
-    monitorResolution: "",
-    targetPrograms: ""
-  });
-
-  //This updates the form data whenever the user types or selects something
-  function handleChange(event) {
-    const { name, value } = event.target;
-
-    setFormData((previousData) => ({
-      ...previousData,
-      [name]: value
-    }));
-  }
-
-  //This runs when the user clicks Analyze My PC
-  function handleSubmit(event) {
-    event.preventDefault();
-    onSubmit(formData);
-  }
-
+function SpecsForm({ formData, isAnalyzing, onChange, onSubmit }) {
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-6 space-y-5">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">
-          Enter your current PC specs
-        </h2>
-
-        <p className="text-slate-600 mt-1">
-          Fill in what you know. Some fields are optional because not everyone knows every part.
-        </p>
+    <form onSubmit={onSubmit} className="space-y-6">
+      <div className="grid gap-5 md:grid-cols-2">
+        <Input label="CPU" name="cpu" value={formData.cpu} onChange={onChange} required placeholder="Example: Ryzen 5 5600X" />
+        <Input label="GPU" name="gpu" value={formData.gpu} onChange={onChange} required placeholder="Example: RTX 3060" />
+        <Input label="RAM" name="ram" value={formData.ram} onChange={onChange} placeholder="Example: 16GB DDR4" />
+        <Input label="Storage" name="storage" value={formData.storage} onChange={onChange} placeholder="Example: 1TB SSD" />
+        <Input label="Motherboard" name="motherboard" value={formData.motherboard} onChange={onChange} placeholder="Example: B550" />
+        <Input label="Power Supply" name="powerSupply" value={formData.powerSupply} onChange={onChange} placeholder="Example: 650W Gold" />
+        <Input label="Case / System Model" name="caseName" value={formData.caseName} onChange={onChange} placeholder="Optional" />
+        <Input label="Upgrade Budget" name="budget" value={formData.budget} onChange={onChange} placeholder="Example: $500" />
       </div>
 
-      {/* Main form inputs */}
-      <div className="grid md:grid-cols-2 gap-4">
-        <Input label="CPU" name="cpu" value={formData.cpu} onChange={handleChange} required />
-
-        <Input label="GPU" name="gpu" value={formData.gpu} onChange={handleChange} required />
-
-        <Input label="RAM Amount" name="ram" value={formData.ram} onChange={handleChange} required />
-
-        <Input label="Budget" name="budget" value={formData.budget} onChange={handleChange} required />
-
-        <Select
-          label="Main Use Case"
+      <label className="block">
+        <span className="text-sm font-medium text-slate-300">Main Use Case</span>
+        <select
           name="useCase"
           value={formData.useCase}
-          onChange={handleChange}
-          required
-          options={[
-            "Gaming",
-            "School",
-            "CAD",
-            "Streaming",
-            "Video Editing",
-            "General Use",
-            "Work",
-            "Other"
-          ]}
-        />
+          onChange={onChange}
+          className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400"
+        >
+          {useCases.map((useCase) => (
+            <option key={useCase}>{useCase}</option>
+          ))}
+        </select>
+      </label>
 
-        <Input label="Motherboard" name="motherboard" value={formData.motherboard} onChange={handleChange} />
-
-        <Input label="Power Supply / PSU" name="psu" value={formData.psu} onChange={handleChange} />
-
-        <Input label="Case" name="caseName" value={formData.caseName} onChange={handleChange} />
-
-        <Input label="Monitor Resolution" name="monitorResolution" value={formData.monitorResolution} onChange={handleChange} />
-
-        <Input label="Target Games / Programs" name="targetPrograms" value={formData.targetPrograms} onChange={handleChange} />
-      </div>
-
-      {/* This submits the form and updates the results */}
       <button
         type="submit"
-        className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition"
+        disabled={isAnalyzing}
+        className="w-full rounded-xl bg-cyan-400 px-6 py-3 font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Analyze My PC
+        {isAnalyzing ? 'Analyzing...' : 'Analyze My PC'}
       </button>
     </form>
-  );
+  )
 }
 
-//This makes a regular text input box
-function Input({ label, name, value, onChange, required = false }) {
+function Input({ label, name, value, onChange, placeholder, required = false }) {
   return (
     <label className="block">
-      <span className="text-sm font-semibold text-slate-700">
-        {label} {required && <span className="text-red-500">*</span>}
+      <span className="text-sm font-medium text-slate-300">
+        {label} {required && <span className="text-red-400">*</span>}
       </span>
-
       <input
         name={name}
         value={value}
         onChange={onChange}
-        required={required}
-        className="mt-1 w-full border border-slate-300 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder={`Enter ${label.toLowerCase()}`}
+        placeholder={placeholder}
+        className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-600 focus:border-cyan-400"
       />
     </label>
-  );
+  )
 }
 
-//This makes a dropdown menu instead of a text input
-function Select({ label, name, value, onChange, options, required = false }) {
-  return (
-    <label className="block">
-      <span className="text-sm font-semibold text-slate-700">
-        {label} {required && <span className="text-red-500">*</span>}
-      </span>
-
-      <select
-        name={name}
-        value={value}
-        onChange={onChange}
-        required={required}
-        className="mt-1 w-full border border-slate-300 rounded-xl px-4 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="" disabled>
-          Select {label.toLowerCase()}
-        </option>
-
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-export default SpecsForm;
+export default SpecsForm

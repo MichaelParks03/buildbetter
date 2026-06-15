@@ -1,91 +1,110 @@
-//This file displays the results after the user clicks Analyze My PC.
+import RecommendationCard from './RecommendationCard'
+import ResultCard from './ResultCard'
+import SummaryItem from './SummaryItem'
 
-function Results({ formData, recommendation, analyzeClickCount }) {
+function Results({ analysis }) {
+  if (!analysis) {
+    return (
+      <aside className="flex min-h-96 items-center justify-center rounded-3xl border border-dashed border-slate-700 bg-slate-900 p-8 text-center text-slate-400">
+        Fill out the form and click Analyze My PC to see backend-powered results.
+      </aside>
+    )
+  }
+
+  const build = analysis.currentBuildSummary || {}
+  const providerLabel =
+    analysis.pricingProvider === 'bestbuy'
+      ? 'Live pricing source: Best Buy'
+      : analysis.pricingProvider === 'ebay'
+        ? 'Live pricing source: eBay'
+        : 'Demo estimate'
+
   return (
-    <section className="bg-white rounded-2xl shadow-lg p-6 space-y-6">
+    <aside className="space-y-5 rounded-3xl border border-cyan-900 bg-slate-900 p-6">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900">Sample Recommendation</h2>
-
-        <p className="text-slate-600 mt-1">
-          This is fake sample data for now. Later, this will come from the backend.
+        <p className="text-sm font-semibold uppercase tracking-wide text-cyan-400">
+          Recommendation
         </p>
-
-        <p className="text-sm text-slate-500 mt-2">
-          Analyze button clicked {analyzeClickCount} time(s) during this session.
-        </p>
+        <h2 className="mt-2 text-3xl font-bold text-white">Your Upgrade Plan</h2>
       </div>
 
-      <div className="bg-slate-100 rounded-xl p-4">
-        <h3 className="font-bold text-slate-900 mb-2">Your Submitted Build</h3>
-
-        <p><strong>CPU:</strong> {formData.cpu}</p>
-        <p><strong>GPU:</strong> {formData.gpu}</p>
-        <p><strong>RAM:</strong> {formData.ram}</p>
-        <p><strong>Budget:</strong> {formData.budget}</p>
-        <p><strong>Use Case:</strong> {formData.useCase}</p>
-
-        {formData.motherboard && (
-          <p><strong>Motherboard:</strong> {formData.motherboard}</p>
-        )}
-
-        {formData.psu && (
-          <p><strong>PSU:</strong> {formData.psu}</p>
-        )}
-
-        {formData.caseName && (
-          <p><strong>Case:</strong> {formData.caseName}</p>
-        )}
-      </div>
-
-      <div className="border-l-4 border-blue-600 pl-4">
-        <h3 className="text-xl font-bold text-slate-900">Best Upgrade</h3>
-
-        <p className="text-lg mt-1">{recommendation.bestUpgrade.part}</p>
-
-        <p className="text-slate-700 mt-2">
-          {recommendation.bestUpgrade.reason}
-        </p>
-
-        <p className="mt-2">
-          <strong>Estimated Price:</strong> {recommendation.bestUpgrade.estimatedPrice}
-        </p>
-      </div>
-
-      <div>
-        <h3 className="text-xl font-bold text-slate-900">Compatibility Warnings</h3>
-
-        <ul className="mt-3 space-y-2">
-          {recommendation.compatibilityNotes.map((note, index) => (
-            <li
-              key={index}
-              className="bg-yellow-100 border border-yellow-300 rounded-xl p-3 text-slate-800"
+      {analysis.warnings?.length > 0 && (
+        <div className="space-y-2">
+          {analysis.warnings.map((warning) => (
+            <p
+              key={warning}
+              className="rounded-xl border border-yellow-800 bg-yellow-950/60 p-3 text-sm text-yellow-100"
             >
-              {note}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div>
-        <h3 className="text-xl font-bold text-slate-900">Where to Buy</h3>
-
-        <div className="grid md:grid-cols-2 gap-4 mt-3">
-          {recommendation.buyOptions.map((option) => (
-            <a
-              key={option.store}
-              href={option.url}
-              target="_blank"
-              rel="noreferrer"
-              className="block border border-slate-300 rounded-xl p-4 hover:border-blue-500 transition"
-            >
-              <h4 className="font-bold text-slate-900">{option.store}</h4>
-              <p className="text-slate-600">{option.price}</p>
-            </a>
+              {warning}
+            </p>
           ))}
         </div>
+      )}
+
+      <ResultCard title="Current Build Summary">
+        <dl className="grid gap-2 text-sm">
+          <SummaryItem label="CPU" value={build.cpu} />
+          <SummaryItem label="GPU" value={build.gpu} />
+          <SummaryItem label="RAM" value={build.ram} />
+          <SummaryItem label="Storage" value={build.storage} />
+          <SummaryItem label="Motherboard" value={build.motherboard} />
+          <SummaryItem label="Power Supply" value={build.powerSupply} />
+          <SummaryItem label="Case or Model" value={build.case} />
+          <SummaryItem label="Budget" value={build.budget ? `$${build.budget}` : ''} />
+          <SummaryItem label="Use Case" value={build.useCase} />
+        </dl>
+      </ResultCard>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ResultCard title="Estimated Used Value" badge="Demo estimate">
+          <p className="text-2xl font-bold text-cyan-300">
+            {analysis.estimatedUsedValue?.range}
+          </p>
+          <p className="mt-2 text-sm text-slate-400">
+            {analysis.estimatedUsedValue?.disclaimer}
+          </p>
+        </ResultCard>
+
+        <ResultCard title="Likely Bottleneck">
+          <p className="text-2xl font-bold text-cyan-300">
+            {analysis.likelyBottleneck}
+          </p>
+        </ResultCard>
       </div>
-    </section>
-  );
+
+      <ResultCard title="Recommended First Upgrade">
+        <RecommendationCard
+          part={analysis.recommendedFirstUpgrade}
+          path={analysis.upgradePath}
+        />
+      </ResultCard>
+
+      <ResultCard title="Pricing" badge={providerLabel}>
+        <p className="mb-4 text-sm text-slate-400">Prices may change.</p>
+        <div className="space-y-3">
+          {analysis.recommendedParts?.map((part) => (
+            <div
+              key={`${part.source}-${part.title}-${part.price}`}
+              className="rounded-xl border border-slate-800 bg-slate-900 p-4"
+            >
+              <p className="font-semibold text-white">{part.title}</p>
+              <p className="text-cyan-300">${part.price.toFixed(2)} {part.currency}</p>
+              <p className="text-sm text-slate-400">
+                {part.source} - {part.condition} - {part.availability}
+              </p>
+            </div>
+          ))}
+        </div>
+      </ResultCard>
+
+      <ResultCard
+        title="Explanation"
+        badge={analysis.explanationSource === 'openai' ? 'AI-generated explanation' : 'Rule-based explanation'}
+      >
+        <p className="leading-7 text-slate-300">{analysis.explanation}</p>
+      </ResultCard>
+    </aside>
+  )
 }
 
-export default Results;
+export default Results
