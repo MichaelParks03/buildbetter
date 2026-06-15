@@ -13,6 +13,16 @@ function getValue(systemInfoText, label) {
     .trim()
 }
 
+function getFirstValue(systemInfoText, labels) {
+  for (const label of labels) {
+    const value = getValue(systemInfoText, label)
+
+    if (value) return value
+  }
+
+  return ''
+}
+
 export function parseSystemInfo(systemInfoText) {
   const warnings = []
   const text = String(systemInfoText || '')
@@ -22,12 +32,17 @@ export function parseSystemInfo(systemInfoText) {
   }
 
   const cpu = getValue(text, 'Processor')
-  const ram = getValue(text, 'Installed Physical Memory (RAM)')
-  const systemModel = getValue(text, 'System Model')
-  const os = getValue(text, 'OS Name')
+  const ram = getFirstValue(text, [
+    'Installed Physical Memory (RAM)',
+    'Installed RAM',
+    'Total Physical Memory',
+  ])
+  const storage = getValue(text, 'Storage')
+  const systemModel = getFirstValue(text, ['System Model', 'Device Name'])
+  const os = getFirstValue(text, ['OS Name', 'Edition'])
   const boardManufacturer = getValue(text, 'BaseBoard Manufacturer')
   const boardProduct = getValue(text, 'BaseBoard Product')
-  const gpuName = getValue(text, 'Name')
+  const gpuName = getFirstValue(text, ['Graphics Card', 'GPU', 'Name'])
   const adapterDescription = getValue(text, 'Adapter Description')
   const gpu = [gpuName, adapterDescription].find(
     (value) => value && !value.toLowerCase().includes('microsoft'),
@@ -41,6 +56,7 @@ export function parseSystemInfo(systemInfoText) {
     cpu,
     gpu: gpu || '',
     ram,
+    storage,
     motherboard: [boardManufacturer, boardProduct].filter(Boolean).join(' '),
     case: systemModel,
     systemModel,

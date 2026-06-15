@@ -9,6 +9,7 @@ function AutoFillSystemInfo({
     ['CPU', detectedSpecs?.cpu],
     ['GPU', detectedSpecs?.gpu],
     ['RAM', detectedSpecs?.ram],
+    ['Storage', detectedSpecs?.storage],
     ['Motherboard', detectedSpecs?.motherboard],
     ['System Model', detectedSpecs?.systemModel || detectedSpecs?.case],
     ['OS', detectedSpecs?.os],

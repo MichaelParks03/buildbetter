@@ -49,6 +49,7 @@ function App() {
         cpu: parsed.cpu || currentData.cpu,
         gpu: parsed.gpu || currentData.gpu,
         ram: parsed.ram || currentData.ram,
+        storage: parsed.storage || currentData.storage,
         motherboard: parsed.motherboard || currentData.motherboard,
         caseName: parsed.case || parsed.systemModel || currentData.caseName,
       }))
