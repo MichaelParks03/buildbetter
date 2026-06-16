@@ -17,7 +17,14 @@ function Results({ analysis }) {
       ? 'Live pricing source: Best Buy'
       : analysis.pricingProvider === 'ebay'
         ? 'Live pricing source: eBay'
-        : 'Demo estimate'
+        : analysis.pricingProvider === 'combined'
+          ? 'Live pricing sources'
+          : 'Demo pricing'
+
+  const estimateBadge =
+    analysis.recommendationSource === 'openrouter'
+      ? 'AI estimate'
+      : analysis.estimatedUsedValue?.confidence || 'Demo estimate'
 
   return (
     <aside className="space-y-5 rounded-3xl border border-cyan-900 bg-slate-900 p-6">
@@ -56,10 +63,15 @@ function Results({ analysis }) {
       </ResultCard>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <ResultCard title="Estimated Used Value" badge="Demo estimate">
+        <ResultCard title="Estimated Used Value" badge={estimateBadge}>
           <p className="text-2xl font-bold text-cyan-300">
             {analysis.estimatedUsedValue?.range}
           </p>
+          {analysis.estimatedUsedValue?.confidence && (
+            <p className="mt-1 text-sm font-semibold text-slate-300">
+              {analysis.estimatedUsedValue.confidence}
+            </p>
+          )}
           <p className="mt-2 text-sm text-slate-400">
             {analysis.estimatedUsedValue?.disclaimer}
           </p>
@@ -87,10 +99,21 @@ function Results({ analysis }) {
               key={`${part.source}-${part.title}-${part.price}`}
               className="rounded-xl border border-slate-800 bg-slate-900 p-4"
             >
-              <p className="font-semibold text-white">{part.title}</p>
+              {part.url ? (
+                <a
+                  className="font-semibold text-white underline-offset-4 hover:text-cyan-300 hover:underline"
+                  href={part.url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {part.title}
+                </a>
+              ) : (
+                <p className="font-semibold text-white">{part.title}</p>
+              )}
               <p className="text-cyan-300">${part.price.toFixed(2)} {part.currency}</p>
               <p className="text-sm text-slate-400">
-                {part.source} - {part.condition} - {part.availability}
+                {part.source} - {part.condition} - {part.availability} - {part.confidence} confidence
               </p>
             </div>
           ))}

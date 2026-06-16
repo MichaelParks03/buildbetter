@@ -7,10 +7,11 @@ BuildBetter is a full-stack PC upgrade recommendation MVP. Users enter or paste 
 - React/Vite/Tailwind frontend for entering PC parts.
 - Paste-based Windows System Information parser.
 - Node/Express backend with `/api` routes.
-- Rule-based PC analysis for bottlenecks, value estimates, upgrade paths, and warnings.
+- OpenRouter-powered PC analysis for bottlenecks, value estimates, upgrade paths, and warnings when configured.
+- Rule-based fallback analysis when no AI key is configured.
 - Mock pricing fallback that works without real API keys.
 - Best Buy and eBay pricing provider scaffolding for later live pricing.
-- Backend-only OpenRouter/Qwen chat and explanation support with rule-based fallback.
+- Backend-only OpenRouter/Qwen chat, recommendations, and explanation support with rule-based fallback.
 
 BuildBetter does not automatically scan a user's computer from the browser. The current MVP uses a paste-based Windows System Information parser. A future desktop helper app would be needed for true automatic local hardware detection.
 
@@ -39,7 +40,7 @@ cd server
 cp .env.example .env
 ```
 
-The app works with empty API keys by using mock pricing and fallback explanations.
+The app works with empty API keys by using mock pricing and fallback recommendations/explanations.
 
 Important variables:
 
@@ -124,14 +125,14 @@ Real in this MVP:
 - Express backend routes.
 - Rule-based PC analysis.
 - Backend validation and warnings.
-- Backend-only OpenRouter call path when a key is configured.
+- Backend-only OpenRouter recommendation and chat paths when a key is configured.
 
 Mock or fallback in this MVP:
 
 - Pricing defaults to mock data.
 - Used value estimates are rough demo estimates.
 - Best Buy and eBay providers are scaffolds until API credentials and provider details are enabled.
-- AI explanations fall back to rules when `OPENROUTER_API_KEY` is missing or the API call fails.
+- AI recommendations and explanations fall back to rules when `OPENROUTER_API_KEY` is missing or the API call fails.
 
 ## Live Pricing And AI Keys Needed Later
 
