@@ -6,6 +6,7 @@ import LoadingState from './components/LoadingState'
 import Results from './components/Results'
 import SpecsForm from './components/SpecsForm'
 import StepCard from './components/StepCard'
+import { askAI } from './api/ai'
 import { analyzeBuild, parseSystemInfo } from './utils/api'
 
 const initialFormData = {
@@ -28,6 +29,10 @@ function App() {
   const [error, setError] = useState('')
   const [isParsing, setIsParsing] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiAnswer, setAiAnswer] = useState('')
+  const [aiError, setAiError] = useState('')
+  const [isAskingAI, setIsAskingAI] = useState(false)
 
   function handleChange(event) {
     const { name, value } = event.target
@@ -55,7 +60,7 @@ function App() {
       }))
     } catch {
       setError(
-        'BuildBetter could not reach the backend parser. Make sure the backend is running on port 5000.',
+        'BuildBetter could not reach the backend parser. Make sure the backend is running on port 3001.',
       )
     } finally {
       setIsParsing(false)
@@ -88,10 +93,31 @@ function App() {
     } catch (requestError) {
       setError(
         requestError.message ||
-          'BuildBetter could not reach the backend. Make sure the backend is running on port 5000.',
+          'BuildBetter could not reach the backend. Make sure the backend is running on port 3001.',
       )
     } finally {
       setIsAnalyzing(false)
+    }
+  }
+
+  async function handleAskAI(event) {
+    event.preventDefault()
+    setAiError('')
+    setAiAnswer('')
+
+    if (!aiPrompt.trim()) {
+      setAiError('Enter a prompt before asking AI.')
+      return
+    }
+
+    setIsAskingAI(true)
+    try {
+      const answer = await askAI(aiPrompt)
+      setAiAnswer(answer)
+    } catch (requestError) {
+      setAiError(requestError.message || 'BuildBetter could not get an AI response.')
+    } finally {
+      setIsAskingAI(false)
     }
   }
 
@@ -154,6 +180,56 @@ function App() {
 
           <Results analysis={analysis} />
         </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-16">
+        <form
+          className="space-y-5 rounded-3xl border border-slate-800 bg-slate-900 p-6"
+          onSubmit={handleAskAI}
+        >
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-cyan-400">
+              OpenRouter Test
+            </p>
+            <h2 className="mt-2 text-3xl font-bold">Ask Qwen through your backend</h2>
+            <p className="mt-2 text-slate-400">
+              The frontend calls your local backend. The backend calls OpenRouter, and the API key stays private in server/.env.
+            </p>
+          </div>
+
+          <label className="block">
+            <span className="mb-2 block text-sm font-semibold text-slate-200">
+              Prompt
+            </span>
+            <textarea
+              className="min-h-32 w-full rounded-2xl border border-slate-700 bg-slate-950 p-4 text-white outline-none transition focus:border-cyan-400"
+              placeholder="Ask for a concise PC upgrade tip..."
+              value={aiPrompt}
+              onChange={(event) => setAiPrompt(event.target.value)}
+            />
+          </label>
+
+          <button
+            className="rounded-2xl bg-cyan-400 px-5 py-3 font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+            type="submit"
+            disabled={isAskingAI}
+          >
+            {isAskingAI ? 'Asking...' : 'Ask AI'}
+          </button>
+
+          <ErrorMessage message={aiError} />
+
+          {aiAnswer && (
+            <div className="rounded-2xl border border-cyan-900 bg-slate-950 p-5">
+              <p className="text-sm font-semibold uppercase tracking-wide text-cyan-400">
+                Response
+              </p>
+              <p className="mt-3 whitespace-pre-wrap leading-7 text-slate-200">
+                {aiAnswer}
+              </p>
+            </div>
+          )}
+        </form>
       </section>
     </main>
   )

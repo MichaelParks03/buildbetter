@@ -10,7 +10,7 @@ BuildBetter is a full-stack PC upgrade recommendation MVP. Users enter or paste 
 - Rule-based PC analysis for bottlenecks, value estimates, upgrade paths, and warnings.
 - Mock pricing fallback that works without real API keys.
 - Best Buy and eBay pricing provider scaffolding for later live pricing.
-- Backend-only OpenAI explanation support with rule-based fallback.
+- Backend-only OpenRouter/Qwen chat and explanation support with rule-based fallback.
 
 BuildBetter does not automatically scan a user's computer from the browser. The current MVP uses a paste-based Windows System Information parser. A future desktop helper app would be needed for true automatic local hardware detection.
 
@@ -43,12 +43,13 @@ The app works with empty API keys by using mock pricing and fallback explanation
 
 Important variables:
 
-- `PORT=5000`
+- `PORT=3001`
 - `CLIENT_ORIGIN=http://localhost:5173`
 - `PRICING_PROVIDER=mock`
 - `BESTBUY_API_KEY=` for future Best Buy pricing
 - `EBAY_CLIENT_ID=` and `EBAY_CLIENT_SECRET=` for future eBay used pricing
-- `OPENAI_API_KEY=` and `OPENAI_MODEL=` for backend-only AI explanations
+- `OPENROUTER_API_KEY=replace_with_your_openrouter_key` for backend-only OpenRouter requests
+- `OPENROUTER_MODEL=qwen/qwen3-next-80b-a3b-instruct:free`
 
 Do not put API keys in frontend code. Do not commit real API keys.
 
@@ -62,7 +63,7 @@ npm run dev
 The backend runs at:
 
 ```text
-http://localhost:5000
+http://localhost:3001
 ```
 
 Health check:
@@ -80,7 +81,7 @@ cd client
 npm run dev -- --host 0.0.0.0
 ```
 
-The frontend runs through Vite on port `5173`. Vite proxies `/api` requests to the backend on port `5000`.
+The frontend runs through Vite on port `5173`. Vite proxies `/api` requests to the backend on port `3001`.
 
 Root scripts are also available:
 
@@ -97,7 +98,8 @@ npm run start:server
 - `POST /api/parse-system-info` parses pasted Windows System Information text.
 - `POST /api/analyze` analyzes a build and returns recommendations.
 - `POST /api/pricing/search` returns normalized pricing results.
-- `POST /api/ai/explain` returns an OpenAI explanation when configured or a fallback explanation.
+- `POST /api/chat` sends a message to the backend, which calls OpenRouter privately and returns an answer.
+- `POST /api/ai/explain` returns an OpenRouter explanation when configured or a fallback explanation.
 
 ## Manual Test Checklist
 
@@ -122,20 +124,20 @@ Real in this MVP:
 - Express backend routes.
 - Rule-based PC analysis.
 - Backend validation and warnings.
-- Backend-only OpenAI call path when a key is configured.
+- Backend-only OpenRouter call path when a key is configured.
 
 Mock or fallback in this MVP:
 
 - Pricing defaults to mock data.
 - Used value estimates are rough demo estimates.
 - Best Buy and eBay providers are scaffolds until API credentials and provider details are enabled.
-- AI explanations fall back to rules when `OPENAI_API_KEY` is missing or the API call fails.
+- AI explanations fall back to rules when `OPENROUTER_API_KEY` is missing or the API call fails.
 
 ## Live Pricing And AI Keys Needed Later
 
 - Best Buy new-part pricing: `BESTBUY_API_KEY`
 - eBay used-market pricing: `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_MARKETPLACE_ID`
-- OpenAI explanations: `OPENAI_API_KEY`, `OPENAI_MODEL`
+- OpenRouter chat and explanations: `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`
 - Amazon Creators API is future optional scaffolding, not a blocker for this MVP.
 
 Amazon Product Advertising API is not the main provider because PA-API is being deprecated. BuildBetter should not scrape Amazon pages.

@@ -99,7 +99,7 @@ function Results({ analysis }) {
 
       <ResultCard
         title="Explanation"
-        badge={analysis.explanationSource === 'openai' ? 'AI-generated explanation' : 'Rule-based explanation'}
+        badge={analysis.explanationSource === 'openrouter' ? 'AI-generated explanation' : 'Rule-based explanation'}
       >
         <p className="leading-7 text-slate-300">{analysis.explanation}</p>
       </ResultCard>
