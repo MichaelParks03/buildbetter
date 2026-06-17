@@ -95,7 +95,7 @@ export async function createAiRecommendation({ build, budget, useCase }) {
         {
           role: 'system',
           content:
-            'You are a careful PC upgrade advisor. Return a single valid JSON object only. Your first character must be { and your last character must be }. Do not use markdown, code fences, bullets, labels, or prose outside JSON. Give practical, hardware-aware recommendations. Do not invent exact benchmarks. For laptops, do not recommend CPU/GPU swaps unless the user clearly has a desktop. Treat prices as estimates unless live pricing data is provided later.',
+            'You are a careful PC upgrade advisor. Return a single valid JSON object only. Your first character must be { and your last character must be }. Do not use markdown, code fences, bullets, labels, or prose outside JSON. Give practical, hardware-aware recommendations. Do not invent exact benchmarks. For laptops, assume CPU and GPU are not upgradeable unless the user explicitly says the laptop supports eGPU, MXM, or swappable GPU modules. For ordinary laptops, recommend RAM, SSD, cooling, external monitor, peripherals, settings, or saving toward a better laptop/desktop instead of internal CPU/GPU swaps. Treat prices as estimates unless live pricing data is provided later.',
         },
         {
           role: 'user',

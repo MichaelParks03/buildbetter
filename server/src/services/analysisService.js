@@ -175,6 +175,101 @@ async function searchRecommendedPricing(searches) {
   }
 }
 
+function recommendationText(recommendation) {
+  return [
+    recommendation.recommendedFirstUpgrade,
+    recommendation.likelyBottleneck,
+    recommendation.explanation,
+    ...(recommendation.upgradePath || []),
+    ...(recommendation.pricingSearches || []).map((search) => search.query),
+  ]
+    .join(' ')
+    .toLowerCase()
+}
+
+function mentionsLaptopGpuSwap(recommendation) {
+  const text = recommendationText(recommendation)
+  return (
+    text.includes('swappable gpu') ||
+    text.includes('gpu module') ||
+    text.includes('mxm') ||
+    text.includes('internal gpu') ||
+    text.includes('replace the gpu') ||
+    text.includes('upgrade to a higher-tier mobile gpu') ||
+    text.includes('rtx 3060 laptop gpu')
+  )
+}
+
+function applyCompatibilityGuardrails(build, budget, recommendation) {
+  if (!looksLikeLaptop(build) || !mentionsLaptopGpuSwap(recommendation)) {
+    return {
+      recommendation,
+      warnings: [],
+    }
+  }
+
+  const practicalFirstUpgrade =
+    budget >= 700
+      ? 'save toward a newer gaming laptop or desktop'
+      : 'external monitor, cooling pad, or SSD'
+
+  return {
+    recommendation: {
+      ...recommendation,
+      likelyBottleneck: 'Laptop GPU headroom',
+      recommendedFirstUpgrade: practicalFirstUpgrade,
+      upgradePath:
+        budget >= 700
+          ? [
+              'Do not plan on an internal laptop GPU swap unless your exact model officially supports it.',
+              'Save toward a newer gaming laptop or desktop with a stronger GPU.',
+              'Use smaller upgrades like storage, cooling, or an external monitor only if they solve a specific daily problem.',
+            ]
+          : [
+              'Do not plan on an internal laptop GPU swap unless your exact model officially supports it.',
+              'Prioritize a 144Hz external monitor, cooling pad, or more SSD storage if those improve your setup.',
+              'Save larger GPU-performance money toward a future gaming laptop or desktop instead.',
+            ],
+      pricingSearches:
+        budget >= 700
+          ? [
+              {
+                query: 'gaming laptop RTX 4060',
+                category: 'laptop',
+                condition: 'any',
+              },
+              {
+                query: '144Hz gaming monitor',
+                category: 'monitor',
+                condition: 'new',
+              },
+            ]
+          : [
+              {
+                query: '144Hz gaming monitor',
+                category: 'monitor',
+                condition: 'new',
+              },
+              {
+                query: 'laptop cooling pad',
+                category: 'accessory',
+                condition: 'new',
+              },
+              {
+                query: '2TB NVMe SSD',
+                category: 'ssd',
+                condition: 'new',
+              },
+            ],
+      explanation:
+        'Your CPU, RAM, and SSD are already strong for a laptop. The RTX 3050 Laptop GPU is the main gaming limit, but internal laptop GPU upgrades are usually not practical. Spend this budget on setup upgrades that actually transfer well, or save toward a future laptop/desktop with a stronger GPU.',
+    },
+    warnings: [
+      'BuildBetter adjusted the AI recommendation because most laptop CPU/GPU parts are not realistically upgradeable.',
+    ],
+  }
+}
+
 export async function analyzeBuild(rawBuild) {
   const warnings = []
   const budget = parseBudget(rawBuild.budget)
@@ -207,8 +302,10 @@ export async function analyzeBuild(rawBuild) {
   }
 
   const aiRecommendation = await createAiRecommendation({ build, budget, useCase })
-  const recommendation =
+  const rawRecommendation =
     aiRecommendation.recommendation || fallbackRecommendation(build, budget).recommendation
+  const guarded = applyCompatibilityGuardrails(build, budget, rawRecommendation)
+  const recommendation = guarded.recommendation
   const recommendationSource = aiRecommendation.recommendation ? aiRecommendation.source : 'fallback'
   const pricing = await searchRecommendedPricing(recommendation.pricingSearches)
 
@@ -223,7 +320,12 @@ export async function analyzeBuild(rawBuild) {
     recommendationSource,
     explanation: recommendation.explanation,
     explanationSource: recommendationSource,
-    warnings: dedupeWarnings([...warnings, ...aiRecommendation.warnings, ...pricing.warnings]),
+    warnings: dedupeWarnings([
+      ...warnings,
+      ...aiRecommendation.warnings,
+      ...guarded.warnings,
+      ...pricing.warnings,
+    ]),
   }
 
   if (recommendationSource === 'fallback') {
