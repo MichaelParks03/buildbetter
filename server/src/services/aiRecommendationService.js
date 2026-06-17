@@ -3,6 +3,15 @@ import { createOpenRouterChatCompletion } from './openRouterClient.js'
 function extractJson(text) {
   if (!text) return null
 
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  if (fenced?.[1]) {
+    try {
+      return JSON.parse(fenced[1])
+    } catch {
+      // Continue to other extraction strategies.
+    }
+  }
+
   try {
     return JSON.parse(text)
   } catch {
@@ -13,6 +22,28 @@ function extractJson(text) {
     } catch {
       return null
     }
+  }
+}
+
+function getRecommendationShape() {
+  return {
+    estimatedUsedValue: {
+      range: '$300 - $500',
+      confidence: 'AI estimate',
+      disclaimer:
+        'This is an AI estimate based on the provided specs, not guaranteed live market pricing.',
+    },
+    likelyBottleneck: 'short phrase',
+    recommendedFirstUpgrade: 'specific upgrade recommendation',
+    upgradePath: ['step 1', 'step 2', 'step 3'],
+    pricingSearches: [
+      {
+        query: 'specific product search query',
+        category: 'ssd | ram | gpu | cpu | monitor | accessory',
+        condition: 'new | used | any',
+      },
+    ],
+    explanation: 'concise beginner-friendly explanation',
   }
 }
 
@@ -64,32 +95,14 @@ export async function createAiRecommendation({ build, budget, useCase }) {
         {
           role: 'system',
           content:
-            'You are a careful PC upgrade advisor. Return only valid JSON. Give practical, hardware-aware recommendations. Do not invent exact benchmarks. For laptops, do not recommend CPU/GPU swaps unless the user clearly has a desktop. Treat prices as estimates unless live pricing data is provided later.',
+            'You are a careful PC upgrade advisor. Return a single valid JSON object only. Your first character must be { and your last character must be }. Do not use markdown, code fences, bullets, labels, or prose outside JSON. Give practical, hardware-aware recommendations. Do not invent exact benchmarks. For laptops, do not recommend CPU/GPU swaps unless the user clearly has a desktop. Treat prices as estimates unless live pricing data is provided later.',
         },
         {
           role: 'user',
           content: JSON.stringify({
             task:
               'Analyze this PC and recommend realistic upgrades. Include a used-value estimate, likely bottleneck, first upgrade, upgrade path, pricing search queries, and concise explanation.',
-            requiredShape: {
-              estimatedUsedValue: {
-                range: '$300 - $500',
-                confidence: 'AI estimate',
-                disclaimer:
-                  'This is an AI estimate based on the provided specs, not guaranteed live market pricing.',
-              },
-              likelyBottleneck: 'short phrase',
-              recommendedFirstUpgrade: 'specific upgrade recommendation',
-              upgradePath: ['step 1', 'step 2', 'step 3'],
-              pricingSearches: [
-                {
-                  query: 'specific product search query',
-                  category: 'ssd | ram | gpu | cpu | monitor | accessory',
-                  condition: 'new | used | any',
-                },
-              ],
-              explanation: 'concise beginner-friendly explanation',
-            },
+            requiredShape: getRecommendationShape(),
             build,
             budget,
             useCase,
@@ -99,7 +112,34 @@ export async function createAiRecommendation({ build, budget, useCase }) {
       maxTokens: 650,
     })
 
-    const parsed = extractJson(data.choices?.[0]?.message?.content)
+    const firstContent = data.choices?.[0]?.message?.content || ''
+    let parsed = extractJson(firstContent)
+
+    if (!parsed && firstContent) {
+      const repair = await createOpenRouterChatCompletion({
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Convert the provided PC upgrade advice into one strict JSON object. Return JSON only. Do not include markdown, code fences, comments, or prose outside JSON.',
+          },
+          {
+            role: 'user',
+            content: JSON.stringify({
+              requiredShape: getRecommendationShape(),
+              previousAdvice: firstContent,
+              build,
+              budget,
+              useCase,
+            }),
+          },
+        ],
+        maxTokens: 550,
+        temperature: 0,
+      })
+
+      parsed = extractJson(repair.choices?.[0]?.message?.content)
+    }
 
     if (!parsed) {
       return {
