@@ -1,8 +1,11 @@
 node_modules
+server/node_modules
 dist
 *.log
 
 .env
+.env.local
+.env.*.local
 client/.env
 server/.env
 

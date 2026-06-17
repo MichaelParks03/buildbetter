@@ -1,3 +1,4 @@
+import { createAiRecommendation } from './aiRecommendationService.js'
 import { createExplanation } from './aiService.js'
 import { searchPricing } from './pricing/pricingService.js'
 
@@ -18,9 +19,15 @@ function storageLooksSlow(storage) {
   return !value || value.includes('hdd') || value.includes('hard drive')
 }
 
+function looksLikeLaptop(build) {
+  const value = `${build.gpu || ''} ${build.case || ''} ${build.motherboard || ''}`.toLowerCase()
+  return value.includes('laptop') || value.includes('notebook') || value.includes('mobile')
+}
+
 function chooseFocus(build, budget) {
   const ramGb = parseRamGb(build.ram)
   const useCase = build.useCase
+  const laptop = looksLikeLaptop(build)
 
   if (ramGb > 0 && ramGb < 16) {
     return {
@@ -43,6 +50,14 @@ function chooseFocus(build, budget) {
       bottleneck: 'Missing GPU details',
       upgrade: 'GPU',
       query: budget >= 700 ? 'RTX 4060 GPU' : 'used RTX 3060 GPU',
+    }
+  }
+
+  if (laptop && useCase === 'Gaming') {
+    return {
+      bottleneck: 'Laptop GPU headroom',
+      upgrade: budget >= 700 ? 'stronger gaming laptop or desktop fund' : 'external monitor, cooling pad, or SSD',
+      query: budget >= 700 ? 'gaming laptop RTX 4060' : '144Hz gaming monitor',
     }
   }
 
@@ -98,6 +113,163 @@ function estimateUsedValue(build) {
   return 'Add more parts for an estimate'
 }
 
+function fallbackRecommendation(build, budget) {
+  const focus = chooseFocus(build, budget)
+
+  return {
+    source: 'fallback',
+    recommendation: {
+      estimatedUsedValue: {
+        range: estimateUsedValue(build),
+        confidence: 'demo estimate',
+        disclaimer: 'This is a rough demo estimate, not guaranteed live market pricing.',
+      },
+      likelyBottleneck: focus.bottleneck,
+      recommendedFirstUpgrade: focus.upgrade,
+      upgradePath: getUpgradePath(budget, focus),
+      pricingSearches: [
+        {
+          query: focus.query,
+          category: focus.upgrade.toLowerCase(),
+          condition: budget >= 700 ? 'new' : 'any',
+        },
+      ],
+      explanation: '',
+    },
+    warnings: [],
+  }
+}
+
+function dedupeWarnings(warnings) {
+  return [...new Set(warnings.filter(Boolean))]
+}
+
+function dedupeParts(parts) {
+  const seen = new Set()
+  return parts.filter((part) => {
+    const key = `${part.source}-${part.title}-${part.price}-${part.condition}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+async function searchRecommendedPricing(searches) {
+  const pricingResults = await Promise.all(
+    searches.map((search) =>
+      searchPricing({
+        query: search.query,
+        category: search.category,
+        condition: search.condition,
+        limit: 3,
+      }),
+    ),
+  )
+
+  return {
+    provider: pricingResults.some((result) => result.provider === 'combined')
+      ? 'combined'
+      : pricingResults.find((result) => result.provider !== 'mock')?.provider || 'mock',
+    results: dedupeParts(pricingResults.flatMap((result) => result.results)).slice(0, 6),
+    warnings: dedupeWarnings(pricingResults.flatMap((result) => result.warnings)),
+  }
+}
+
+function recommendationText(recommendation) {
+  return [
+    recommendation.recommendedFirstUpgrade,
+    recommendation.likelyBottleneck,
+    recommendation.explanation,
+    ...(recommendation.upgradePath || []),
+    ...(recommendation.pricingSearches || []).map((search) => search.query),
+  ]
+    .join(' ')
+    .toLowerCase()
+}
+
+function mentionsLaptopGpuSwap(recommendation) {
+  const text = recommendationText(recommendation)
+  return (
+    text.includes('swappable gpu') ||
+    text.includes('gpu module') ||
+    text.includes('mxm') ||
+    text.includes('internal gpu') ||
+    text.includes('replace the gpu') ||
+    text.includes('upgrade to a higher-tier mobile gpu') ||
+    text.includes('rtx 3060 laptop gpu')
+  )
+}
+
+function applyCompatibilityGuardrails(build, budget, recommendation) {
+  if (!looksLikeLaptop(build) || !mentionsLaptopGpuSwap(recommendation)) {
+    return {
+      recommendation,
+      warnings: [],
+    }
+  }
+
+  const practicalFirstUpgrade =
+    budget >= 700
+      ? 'save toward a newer gaming laptop or desktop'
+      : 'external monitor, cooling pad, or SSD'
+
+  return {
+    recommendation: {
+      ...recommendation,
+      likelyBottleneck: 'Laptop GPU headroom',
+      recommendedFirstUpgrade: practicalFirstUpgrade,
+      upgradePath:
+        budget >= 700
+          ? [
+              'Do not plan on an internal laptop GPU swap unless your exact model officially supports it.',
+              'Save toward a newer gaming laptop or desktop with a stronger GPU.',
+              'Use smaller upgrades like storage, cooling, or an external monitor only if they solve a specific daily problem.',
+            ]
+          : [
+              'Do not plan on an internal laptop GPU swap unless your exact model officially supports it.',
+              'Prioritize a 144Hz external monitor, cooling pad, or more SSD storage if those improve your setup.',
+              'Save larger GPU-performance money toward a future gaming laptop or desktop instead.',
+            ],
+      pricingSearches:
+        budget >= 700
+          ? [
+              {
+                query: 'gaming laptop RTX 4060',
+                category: 'laptop',
+                condition: 'any',
+              },
+              {
+                query: '144Hz gaming monitor',
+                category: 'monitor',
+                condition: 'new',
+              },
+            ]
+          : [
+              {
+                query: '144Hz gaming monitor',
+                category: 'monitor',
+                condition: 'new',
+              },
+              {
+                query: 'laptop cooling pad',
+                category: 'accessory',
+                condition: 'new',
+              },
+              {
+                query: '2TB NVMe SSD',
+                category: 'ssd',
+                condition: 'new',
+              },
+            ],
+      explanation:
+        'Your CPU, RAM, and SSD are already strong for a laptop. The RTX 3050 Laptop GPU is the main gaming limit, but internal laptop GPU upgrades are usually not practical. Spend this budget on setup upgrades that actually transfer well, or save toward a future laptop/desktop with a stronger GPU.',
+    },
+    warnings: [
+      'BuildBetter adjusted the AI recommendation because most laptop CPU/GPU parts are not realistically upgradeable.',
+    ],
+  }
+}
+
 export async function analyzeBuild(rawBuild) {
   const warnings = []
   const budget = parseBudget(rawBuild.budget)
@@ -129,42 +301,46 @@ export async function analyzeBuild(rawBuild) {
     warnings.push('Unknown use case. BuildBetter used General Use for this analysis.')
   }
 
-  const focus = chooseFocus(build, budget)
-  const pricing = await searchPricing({
-    query: focus.query,
-    category: focus.upgrade.toLowerCase(),
-    condition: budget >= 700 ? 'new' : 'any',
-    limit: 4,
-  })
+  const aiRecommendation = await createAiRecommendation({ build, budget, useCase })
+  const rawRecommendation =
+    aiRecommendation.recommendation || fallbackRecommendation(build, budget).recommendation
+  const guarded = applyCompatibilityGuardrails(build, budget, rawRecommendation)
+  const recommendation = guarded.recommendation
+  const recommendationSource = aiRecommendation.recommendation ? aiRecommendation.source : 'fallback'
+  const pricing = await searchRecommendedPricing(recommendation.pricingSearches)
 
   const analysis = {
     currentBuildSummary: build,
-    estimatedUsedValue: {
-      range: estimateUsedValue(build),
-      confidence: 'demo estimate',
-      disclaimer: 'This is a rough demo estimate, not guaranteed live market pricing.',
-    },
-    likelyBottleneck: focus.bottleneck,
-    recommendedFirstUpgrade: focus.upgrade,
-    upgradePath: getUpgradePath(budget, focus),
+    estimatedUsedValue: recommendation.estimatedUsedValue,
+    likelyBottleneck: recommendation.likelyBottleneck,
+    recommendedFirstUpgrade: recommendation.recommendedFirstUpgrade,
+    upgradePath: recommendation.upgradePath,
     recommendedParts: pricing.results,
     pricingProvider: pricing.provider,
-    explanation: '',
-    explanationSource: 'fallback',
-    warnings: [...warnings, ...pricing.warnings],
+    recommendationSource,
+    explanation: recommendation.explanation,
+    explanationSource: recommendationSource,
+    warnings: dedupeWarnings([
+      ...warnings,
+      ...aiRecommendation.warnings,
+      ...guarded.warnings,
+      ...pricing.warnings,
+    ]),
   }
 
-  const explanation = await createExplanation({
-    build,
-    analysis,
-    pricing: pricing.results,
-    userGoal: useCase,
-    budget,
-  })
+  if (recommendationSource === 'fallback') {
+    const explanation = await createExplanation({
+      build,
+      analysis,
+      pricing: pricing.results,
+      userGoal: useCase,
+      budget,
+    })
 
-  analysis.explanation = explanation.explanation
-  analysis.explanationSource = explanation.source
-  analysis.warnings = [...analysis.warnings, ...explanation.warnings]
+    analysis.explanation = explanation.explanation
+    analysis.explanationSource = explanation.source
+    analysis.warnings = dedupeWarnings([...analysis.warnings, ...explanation.warnings])
+  }
 
   return analysis
 }
