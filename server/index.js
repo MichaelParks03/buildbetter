@@ -44,21 +44,41 @@ app.post('/api/chat', async (request, response) => {
 
   try {
     // Backend calls OpenRouter. The API key stays private in server/.env.
-    const data = await createOpenRouterChatCompletion({
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are a helpful assistant. Be direct, accurate, and concise.',
+      },
+      {
+        role: 'user',
+        content: message.trim(),
+      },
+    ]
+    let data = await createOpenRouterChatCompletion({
+      messages,
+      maxTokens: 450,
+    })
+
+    let answer = data.choices?.[0]?.message?.content?.trim()
+
+    if (!answer) {
+      data = await createOpenRouterChatCompletion({
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful assistant. Be direct, accurate, and concise.',
+            content:
+              'You are a helpful assistant. The previous provider returned an empty response. Answer the user directly and concisely.',
         },
         {
           role: 'user',
           content: message.trim(),
         },
       ],
-      maxTokens: 450,
-    })
-
-    const answer = data.choices?.[0]?.message?.content?.trim()
+        maxTokens: 650,
+        temperature: 0.2,
+      })
+      answer = data.choices?.[0]?.message?.content?.trim()
+    }
 
     if (!answer) {
       return response.status(502).json({
