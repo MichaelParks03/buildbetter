@@ -66,6 +66,8 @@ export async function createAiRecommendation({ build, budget, useCase }) {
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:5173',
+        'X-Title': 'BuildBetter',
       },
       body: JSON.stringify({
         model,
@@ -105,7 +107,6 @@ export async function createAiRecommendation({ build, budget, useCase }) {
             }),
           },
         ],
-        response_format: { type: 'json_object' },
         temperature: 0.3,
         max_tokens: 650,
       }),

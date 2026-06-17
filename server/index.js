@@ -48,6 +48,8 @@ app.post('/api/chat', async (request, response) => {
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:5173',
+        'X-Title': 'BuildBetter',
       },
       body: JSON.stringify({
         model:
