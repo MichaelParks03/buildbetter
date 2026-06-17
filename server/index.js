@@ -6,6 +6,7 @@ import analyzeRouter from './src/routes/analyze.js'
 import healthRouter from './src/routes/health.js'
 import pricingRouter from './src/routes/pricing.js'
 import systemInfoRouter from './src/routes/systemInfo.js'
+import { createOpenRouterChatCompletion } from './src/services/openRouterClient.js'
 
 dotenv.config()
 
@@ -43,40 +44,19 @@ app.post('/api/chat', async (request, response) => {
 
   try {
     // Backend calls OpenRouter. The API key stays private in server/.env.
-    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:5173',
-        'X-Title': 'BuildBetter',
-      },
-      body: JSON.stringify({
-        model:
-          process.env.OPENROUTER_MODEL ||
-          'qwen/qwen3-next-80b-a3b-instruct:free',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful assistant. Be direct, accurate, and concise.',
-          },
-          {
-            role: 'user',
-            content: message.trim(),
-          },
-        ],
-      }),
+    const data = await createOpenRouterChatCompletion({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant. Be direct, accurate, and concise.',
+        },
+        {
+          role: 'user',
+          content: message.trim(),
+        },
+      ],
+      maxTokens: 450,
     })
-
-    const data = await openRouterResponse.json().catch(() => ({}))
-
-    if (!openRouterResponse.ok) {
-      return response.status(openRouterResponse.status).json({
-        error:
-          data?.error?.message ||
-          `OpenRouter request failed with status ${openRouterResponse.status}.`,
-      })
-    }
 
     const answer = data.choices?.[0]?.message?.content?.trim()
 
@@ -86,11 +66,11 @@ app.post('/api/chat', async (request, response) => {
       })
     }
 
-    return response.json({ answer })
+    return response.json({ answer, model: data.model })
   } catch (error) {
     console.error(error)
-    return response.status(500).json({
-      error: 'The backend could not reach OpenRouter. Please try again.',
+    return response.status(502).json({
+      error: error.message || 'The backend could not reach OpenRouter. Please try again.',
     })
   }
 })

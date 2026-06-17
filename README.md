@@ -51,6 +51,7 @@ Important variables:
 - `EBAY_CLIENT_ID=` and `EBAY_CLIENT_SECRET=` for future eBay used pricing
 - `OPENROUTER_API_KEY=replace_with_your_openrouter_key` for backend-only OpenRouter requests
 - `OPENROUTER_MODEL=qwen/qwen3-next-80b-a3b-instruct:free`
+- `OPENROUTER_FALLBACK_MODELS=openrouter/free`
 - `OPENROUTER_SITE_URL=http://localhost:5173`
 
 Do not put API keys in frontend code. Do not commit real API keys.

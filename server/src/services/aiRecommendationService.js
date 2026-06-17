@@ -1,4 +1,4 @@
-const DEFAULT_MODEL = 'qwen/qwen3-next-80b-a3b-instruct:free'
+import { createOpenRouterChatCompletion } from './openRouterClient.js'
 
 function extractJson(text) {
   if (!text) return null
@@ -57,73 +57,47 @@ export async function createAiRecommendation({ build, budget, useCase }) {
     }
   }
 
-  const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL
-
   try {
     // Backend calls OpenRouter. The API key stays private in server/.env.
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.OPENROUTER_SITE_URL || 'http://localhost:5173',
-        'X-Title': 'BuildBetter',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a careful PC upgrade advisor. Return only valid JSON. Give practical, hardware-aware recommendations. Do not invent exact benchmarks. For laptops, do not recommend CPU/GPU swaps unless the user clearly has a desktop. Treat prices as estimates unless live pricing data is provided later.',
-          },
-          {
-            role: 'user',
-            content: JSON.stringify({
-              task:
-                'Analyze this PC and recommend realistic upgrades. Include a used-value estimate, likely bottleneck, first upgrade, upgrade path, pricing search queries, and concise explanation.',
-              requiredShape: {
-                estimatedUsedValue: {
-                  range: '$300 - $500',
-                  confidence: 'AI estimate',
-                  disclaimer:
-                    'This is an AI estimate based on the provided specs, not guaranteed live market pricing.',
-                },
-                likelyBottleneck: 'short phrase',
-                recommendedFirstUpgrade: 'specific upgrade recommendation',
-                upgradePath: ['step 1', 'step 2', 'step 3'],
-                pricingSearches: [
-                  {
-                    query: 'specific product search query',
-                    category: 'ssd | ram | gpu | cpu | monitor | accessory',
-                    condition: 'new | used | any',
-                  },
-                ],
-                explanation: 'concise beginner-friendly explanation',
+    const data = await createOpenRouterChatCompletion({
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a careful PC upgrade advisor. Return only valid JSON. Give practical, hardware-aware recommendations. Do not invent exact benchmarks. For laptops, do not recommend CPU/GPU swaps unless the user clearly has a desktop. Treat prices as estimates unless live pricing data is provided later.',
+        },
+        {
+          role: 'user',
+          content: JSON.stringify({
+            task:
+              'Analyze this PC and recommend realistic upgrades. Include a used-value estimate, likely bottleneck, first upgrade, upgrade path, pricing search queries, and concise explanation.',
+            requiredShape: {
+              estimatedUsedValue: {
+                range: '$300 - $500',
+                confidence: 'AI estimate',
+                disclaimer:
+                  'This is an AI estimate based on the provided specs, not guaranteed live market pricing.',
               },
-              build,
-              budget,
-              useCase,
-            }),
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 650,
-      }),
+              likelyBottleneck: 'short phrase',
+              recommendedFirstUpgrade: 'specific upgrade recommendation',
+              upgradePath: ['step 1', 'step 2', 'step 3'],
+              pricingSearches: [
+                {
+                  query: 'specific product search query',
+                  category: 'ssd | ram | gpu | cpu | monitor | accessory',
+                  condition: 'new | used | any',
+                },
+              ],
+              explanation: 'concise beginner-friendly explanation',
+            },
+            build,
+            budget,
+            useCase,
+          }),
+        },
+      ],
+      maxTokens: 650,
     })
-
-    const data = await response.json().catch(() => ({}))
-
-    if (!response.ok) {
-      return {
-        source: 'fallback',
-        recommendation: null,
-        warnings: [
-          data?.error?.message ||
-            `OpenRouter recommendation request failed with status ${response.status}.`,
-        ],
-      }
-    }
 
     const parsed = extractJson(data.choices?.[0]?.message?.content)
 
@@ -170,11 +144,14 @@ export async function createAiRecommendation({ build, budget, useCase }) {
       },
       warnings: [],
     }
-  } catch {
+  } catch (error) {
     return {
       source: 'fallback',
       recommendation: null,
-      warnings: ['OpenRouter recommendation failed, so BuildBetter used rule-based recommendations.'],
+      warnings: [
+        error.message ||
+          'OpenRouter recommendation failed, so BuildBetter used rule-based recommendations.',
+      ],
     }
   }
 }
