@@ -1,0 +1,222 @@
+{
+  "client/eslint.config.js": {
+    "mtime": 1782944356.2718055,
+    "ast_hash": "3aa4b57d7f08181d86bde52a4dcb7f22",
+    "semantic_hash": "3aa4b57d7f08181d86bde52a4dcb7f22"
+  },
+  "client/package.json": {
+    "mtime": 1782944356.2838063,
+    "ast_hash": "69ae50b505e9716d3492052c6179d5cd",
+    "semantic_hash": "69ae50b505e9716d3492052c6179d5cd"
+  },
+  "client/src/App.jsx": {
+    "mtime": 1782944356.307806,
+    "ast_hash": "2657accb467bb195c3e4bfe1e87c3229",
+    "semantic_hash": "2657accb467bb195c3e4bfe1e87c3229"
+  },
+  "client/src/components/AutoFillSystemInfo.jsx": {
+    "mtime": 1782944356.338807,
+    "ast_hash": "6019a756bc2b8ddd8acef9832f58bb00",
+    "semantic_hash": "6019a756bc2b8ddd8acef9832f58bb00"
+  },
+  "client/src/components/ErrorMessage.jsx": {
+    "mtime": 1782944356.345806,
+    "ast_hash": "e38e1d13d61b6baff2d17d1e4207aa3f",
+    "semantic_hash": "e38e1d13d61b6baff2d17d1e4207aa3f"
+  },
+  "client/src/components/Hero.jsx": {
+    "mtime": 1782944356.3518064,
+    "ast_hash": "3b030ffb536e347716d1174dbc8adf27",
+    "semantic_hash": "3b030ffb536e347716d1174dbc8adf27"
+  },
+  "client/src/components/LoadingState.jsx": {
+    "mtime": 1782944356.356806,
+    "ast_hash": "2ee8df506a1ba993e3636d4a99a7ca31",
+    "semantic_hash": "2ee8df506a1ba993e3636d4a99a7ca31"
+  },
+  "client/src/components/RecommendationCard.jsx": {
+    "mtime": 1782944356.3628056,
+    "ast_hash": "7260537480d7562576b327c0aa51b1ec",
+    "semantic_hash": "7260537480d7562576b327c0aa51b1ec"
+  },
+  "client/src/components/ResultCard.jsx": {
+    "mtime": 1782944356.3688083,
+    "ast_hash": "5910885195ff1ff3df2dac43b063de76",
+    "semantic_hash": "5910885195ff1ff3df2dac43b063de76"
+  },
+  "client/src/components/Results.jsx": {
+    "mtime": 1782944356.374807,
+    "ast_hash": "d8098e89fe7f974f38d7f28ff992985e",
+    "semantic_hash": "d8098e89fe7f974f38d7f28ff992985e"
+  },
+  "client/src/components/SpecsForm.jsx": {
+    "mtime": 1782944356.3798063,
+    "ast_hash": "979948a7168c3d41a48747febf891513",
+    "semantic_hash": "979948a7168c3d41a48747febf891513"
+  },
+  "client/src/components/StepCard.jsx": {
+    "mtime": 1782944356.3848069,
+    "ast_hash": "e39a41fd43350d64fca371ccbe16f05a",
+    "semantic_hash": "e39a41fd43350d64fca371ccbe16f05a"
+  },
+  "client/src/components/SummaryItem.jsx": {
+    "mtime": 1782944356.389808,
+    "ast_hash": "bdb58d01dba9ff2ead8f89548450b915",
+    "semantic_hash": "bdb58d01dba9ff2ead8f89548450b915"
+  },
+  "client/src/data/useCases.js": {
+    "mtime": 1782944356.3988063,
+    "ast_hash": "b60e50f398d24632899e594a0a6d13c5",
+    "semantic_hash": "b60e50f398d24632899e594a0a6d13c5"
+  },
+  "client/src/main.jsx": {
+    "mtime": 1782944356.4078083,
+    "ast_hash": "e13723e2574429d9a6d849727e3ff695",
+    "semantic_hash": "e13723e2574429d9a6d849727e3ff695"
+  },
+  "client/src/utils/api.js": {
+    "mtime": 1782944356.4198081,
+    "ast_hash": "85f29515a97ae752ef5e1439bd3a9912",
+    "semantic_hash": "85f29515a97ae752ef5e1439bd3a9912"
+  },
+  "client/vite.config.js": {
+    "mtime": 1782944356.4228058,
+    "ast_hash": "13f17296ac61ae9ddb57a847f96fc4a0",
+    "semantic_hash": "13f17296ac61ae9ddb57a847f96fc4a0"
+  },
+  "package.json": {
+    "mtime": 1782944356.4258068,
+    "ast_hash": "db9550e5298953d82b2713b35e83ef4b",
+    "semantic_hash": "db9550e5298953d82b2713b35e83ef4b"
+  },
+  "server/package.json": {
+    "mtime": 1782944356.439809,
+    "ast_hash": "e6a887f4f2efd40ee76b7dc378b88c39",
+    "semantic_hash": "e6a887f4f2efd40ee76b7dc378b88c39"
+  },
+  "server/src/data/mockParts.js": {
+    "mtime": 1782944356.4528062,
+    "ast_hash": "6fd8957e9b0439e51c0af9edd8071bf0",
+    "semantic_hash": "6fd8957e9b0439e51c0af9edd8071bf0"
+  },
+  "server/src/index.js": {
+    "mtime": 1782944356.4568076,
+    "ast_hash": "59342c68ba331a972b40cfb2ff6a168d",
+    "semantic_hash": "59342c68ba331a972b40cfb2ff6a168d"
+  },
+  "server/src/routes/ai.js": {
+    "mtime": 1782944356.4658053,
+    "ast_hash": "d80eb65d257af4b3b5385586f300a3f0",
+    "semantic_hash": "d80eb65d257af4b3b5385586f300a3f0"
+  },
+  "server/src/routes/analyze.js": {
+    "mtime": 1782944356.4728074,
+    "ast_hash": "8d1555f14e0d4c00a7a809408113c495",
+    "semantic_hash": "8d1555f14e0d4c00a7a809408113c495"
+  },
+  "server/src/routes/health.js": {
+    "mtime": 1782944356.4788074,
+    "ast_hash": "3638e71b8b5fb3bf17419a3757378bd6",
+    "semantic_hash": "3638e71b8b5fb3bf17419a3757378bd6"
+  },
+  "server/src/routes/pricing.js": {
+    "mtime": 1782944356.4838085,
+    "ast_hash": "3e4cb6dda36ad599442bc8c049fb5903",
+    "semantic_hash": "3e4cb6dda36ad599442bc8c049fb5903"
+  },
+  "server/src/routes/systemInfo.js": {
+    "mtime": 1782944356.4898076,
+    "ast_hash": "9493f587a6d3f77618e3933372033fc7",
+    "semantic_hash": "9493f587a6d3f77618e3933372033fc7"
+  },
+  "server/src/services/aiService.js": {
+    "mtime": 1782944356.500808,
+    "ast_hash": "3634438f50d3f31603e4c00e08301c60",
+    "semantic_hash": "3634438f50d3f31603e4c00e08301c60"
+  },
+  "server/src/services/analysisService.js": {
+    "mtime": 1782944356.5088077,
+    "ast_hash": "070100184a67ac6918deeb3788324ff8",
+    "semantic_hash": "070100184a67ac6918deeb3788324ff8"
+  },
+  "server/src/services/pricing/amazonCreatorsProvider.js": {
+    "mtime": 1782944356.5198078,
+    "ast_hash": "c14a72056da3fdaa2aca3d8d9e84b3e1",
+    "semantic_hash": "c14a72056da3fdaa2aca3d8d9e84b3e1"
+  },
+  "server/src/services/pricing/bestBuyProvider.js": {
+    "mtime": 1782944356.5268085,
+    "ast_hash": "2fbcc52239bbe719ffc46c05eb65c31a",
+    "semantic_hash": "2fbcc52239bbe719ffc46c05eb65c31a"
+  },
+  "server/src/services/pricing/ebayProvider.js": {
+    "mtime": 1782944356.5328069,
+    "ast_hash": "6031822f72e56d497fcafbc4e5bc3257",
+    "semantic_hash": "6031822f72e56d497fcafbc4e5bc3257"
+  },
+  "server/src/services/pricing/mockPricingProvider.js": {
+    "mtime": 1782944356.5378075,
+    "ast_hash": "77c4b4e0201d5d13dbf3ebed47616ef2",
+    "semantic_hash": "77c4b4e0201d5d13dbf3ebed47616ef2"
+  },
+  "server/src/services/pricing/normalizePricingResult.js": {
+    "mtime": 1782944356.544806,
+    "ast_hash": "3691f0936951d4e4a8b5bb65128687c3",
+    "semantic_hash": "3691f0936951d4e4a8b5bb65128687c3"
+  },
+  "server/src/services/pricing/pricingService.js": {
+    "mtime": 1782944356.5518067,
+    "ast_hash": "27832ca70451ac76bd284ac1fbef4472",
+    "semantic_hash": "27832ca70451ac76bd284ac1fbef4472"
+  },
+  "server/src/services/systemInfoParser.js": {
+    "mtime": 1782944356.5568075,
+    "ast_hash": "9253a47387669d8f2c09d34ae3e4b3cc",
+    "semantic_hash": "9253a47387669d8f2c09d34ae3e4b3cc"
+  },
+  "AGENTS.md": {
+    "mtime": 1782944356.2588067,
+    "ast_hash": "6725da1178d83cc982741c29110638dc",
+    "semantic_hash": "6725da1178d83cc982741c29110638dc"
+  },
+  "README.md": {
+    "mtime": 1782944356.260806,
+    "ast_hash": "69bceb1d5e0fd108c8d19c3e21f5b5da",
+    "semantic_hash": "69bceb1d5e0fd108c8d19c3e21f5b5da"
+  },
+  "client/README.md": {
+    "mtime": 1782944356.2698066,
+    "ast_hash": "a28dc4cb878325f3e9e5649f3e1469ac",
+    "semantic_hash": "a28dc4cb878325f3e9e5649f3e1469ac"
+  },
+  "client/index.html": {
+    "mtime": 1782944356.2758074,
+    "ast_hash": "a4d3fdfa54e86086f6a6429551543090",
+    "semantic_hash": "a4d3fdfa54e86086f6a6429551543090"
+  },
+  "client/public/favicon.svg": {
+    "mtime": 1782944356.2888062,
+    "ast_hash": "7e840862161341271697daa99a40d76b",
+    "semantic_hash": "7e840862161341271697daa99a40d76b"
+  },
+  "client/public/icons.svg": {
+    "mtime": 1782944356.2958083,
+    "ast_hash": "3b4fcfcf393eca4d264dca4a4663bc37",
+    "semantic_hash": "3b4fcfcf393eca4d264dca4a4663bc37"
+  },
+  "client/src/assets/hero.png": {
+    "mtime": 1782944356.3168063,
+    "ast_hash": "aead493361b27e7510691c5d7072dfc1",
+    "semantic_hash": "aead493361b27e7510691c5d7072dfc1"
+  },
+  "client/src/assets/react.svg": {
+    "mtime": 1782944356.322806,
+    "ast_hash": "f0402b67b6ce880f65666bb49e841696",
+    "semantic_hash": "f0402b67b6ce880f65666bb49e841696"
+  },
+  "client/src/assets/vite.svg": {
+    "mtime": 1782944356.3288057,
+    "ast_hash": "9960a24288958394ac50e57ff638b036",
+    "semantic_hash": "9960a24288958394ac50e57ff638b036"
+  }
+}
