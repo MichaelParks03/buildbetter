@@ -81,20 +81,26 @@ function Results({ analysis }) {
 
       <ResultCard title="Pricing" badge={providerLabel}>
         <p className="mb-4 text-sm text-slate-400">Prices may change.</p>
-        <div className="space-y-3">
-          {analysis.recommendedParts?.map((part) => (
-            <div
-              key={`${part.source}-${part.title}-${part.price}`}
-              className="rounded-xl border border-slate-800 bg-slate-900 p-4"
-            >
-              <p className="font-semibold text-white">{part.title}</p>
-              <p className="text-cyan-300">${part.price.toFixed(2)} {part.currency}</p>
-              <p className="text-sm text-slate-400">
-                {part.source} - {part.condition} - {part.availability}
-              </p>
-            </div>
-          ))}
-        </div>
+        {analysis.recommendedParts?.length > 0 ? (
+          <div className="space-y-3">
+            {analysis.recommendedParts.map((part) => (
+              <div
+                key={`${part.source}-${part.title}-${part.price}`}
+                className="rounded-xl border border-slate-800 bg-slate-900 p-4"
+              >
+                <p className="font-semibold text-white">{part.title}</p>
+                <p className="text-cyan-300">${part.price.toFixed(2)} {part.currency}</p>
+                <p className="text-sm text-slate-400">
+                  {part.source} - {part.condition} - {part.availability}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm text-slate-400">
+            No demo pricing matched this part yet.
+          </p>
+        )}
       </ResultCard>
 
       <ResultCard

@@ -3,9 +3,13 @@ import { useCases } from '../data/useCases'
 function SpecsForm({ formData, isAnalyzing, onChange, onSubmit }) {
   return (
     <form onSubmit={onSubmit} className="space-y-6">
+      <p className="text-sm text-slate-400">
+        At least one of CPU or GPU is required.
+      </p>
+
       <div className="grid gap-5 md:grid-cols-2">
-        <Input label="CPU" name="cpu" value={formData.cpu} onChange={onChange} required placeholder="Example: Ryzen 5 5600X" />
-        <Input label="GPU" name="gpu" value={formData.gpu} onChange={onChange} required placeholder="Example: RTX 3060" />
+        <Input label="CPU" name="cpu" value={formData.cpu} onChange={onChange} placeholder="Example: Ryzen 5 5600X" hint="CPU or GPU required" />
+        <Input label="GPU" name="gpu" value={formData.gpu} onChange={onChange} placeholder="Example: RTX 3060" hint="CPU or GPU required" />
         <Input label="RAM" name="ram" value={formData.ram} onChange={onChange} placeholder="Example: 16GB DDR4" />
         <Input label="Storage" name="storage" value={formData.storage} onChange={onChange} placeholder="Example: 1TB SSD" />
         <Input label="Motherboard" name="motherboard" value={formData.motherboard} onChange={onChange} placeholder="Example: B550" />
@@ -39,11 +43,12 @@ function SpecsForm({ formData, isAnalyzing, onChange, onSubmit }) {
   )
 }
 
-function Input({ label, name, value, onChange, placeholder, required = false }) {
+function Input({ label, name, value, onChange, placeholder, hint }) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-slate-300">
-        {label} {required && <span className="text-red-400">*</span>}
+        {label}
+        {hint && <span className="ml-2 text-xs font-normal text-cyan-400">{hint}</span>}
       </span>
       <input
         name={name}

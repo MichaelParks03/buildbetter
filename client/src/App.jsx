@@ -108,12 +108,12 @@ function App() {
         <StepCard
           number="2"
           title="Check Pricing"
-          description="Use mock pricing now, with Best Buy and eBay API scaffolding ready for keys."
+          description="See demo pricing today, with real marketplace pricing coming soon."
         />
         <StepCard
           number="3"
           title="Recommend Upgrades"
-          description="Get a backend-powered bottleneck, upgrade path, and explanation."
+          description="Get a personalized bottleneck, upgrade path, and explanation."
         />
       </section>
 
