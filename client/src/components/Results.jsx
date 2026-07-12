@@ -114,6 +114,11 @@ function Results({ analysis }) {
       </ResultCard>
 
       <ResultCard title="Pricing" badge={providerLabel}>
+        {analysis.budgetPlan?.message && (
+          <p className="mb-3 rounded-xl border border-cyan-900 bg-cyan-950/30 p-3 text-sm text-cyan-100">
+            {analysis.budgetPlan.message}
+          </p>
+        )}
         <p className="mb-4 text-sm text-slate-400">
           {analysis.pricingProvider === 'curated'
             ? 'These are typical prices we update by hand. Click a store to see today’s live price.'
@@ -140,6 +145,11 @@ function Results({ analysis }) {
                     part.title
                   )}
                 </p>
+                {part.note && (
+                  <p className="mt-1 inline-block rounded-md bg-cyan-950/60 px-2 py-0.5 text-xs font-semibold text-cyan-300">
+                    {part.note}
+                  </p>
+                )}
                 <p className="text-cyan-300">${part.price.toFixed(2)} {part.currency}</p>
                 <p className="text-sm text-slate-400">
                   {part.source} - {part.condition} - {part.availability}

@@ -72,6 +72,7 @@ function verdictSentence(bottleneck, goal) {
     cpu: `For ${goal}, the processor sets the pace — and yours is the part falling furthest behind, so it's the smartest place to spend.`,
     ram: `${bottleneck.ramGb ? `${bottleneck.ramGb}GB of` : 'Your'} memory is what's pinching you here — RAM is cheap compared to most upgrades and smooths out ${goal} more than people expect.`,
     storage: `Your ${bottleneck.storageKind || 'storage'} is the drag here — moving to a fast NVMe SSD is the difference between waiting for things to load and just... not.`,
+    none: `And here's the good news: nothing is really holding you back. Your parts are well matched for ${goal}.`,
   }
   return map[bottleneck.component] || ''
 }
@@ -84,10 +85,33 @@ function confidenceSentence(confidence) {
   return `Honestly, we couldn't identify enough of your parts to be sure — treat this as a starting point, not a verdict.`
 }
 
+function planSentence({ analysis, budget }) {
+  const budgetPlan = analysis?.budgetPlan
+  const upgrade = upgradeText(analysis?.recommendedFirstUpgrade)
+
+  if (!budgetPlan) return recommendationSentence(budget, upgrade)
+
+  const topPick = budgetPlan.picks?.[0]
+
+  if (budgetPlan.status === 'maxed_out') {
+    return `And honestly? Your build is already strong across the board — nothing in our catalog would be a meaningful step up, so save your money for a bigger jump later.`
+  }
+  if (budgetPlan.status === 'no_budget') {
+    return `So here's the plan: ${upgrade} would make the biggest difference here — and since you didn't give a budget, we ranked the picks below purely by value for money.`
+  }
+  if (budgetPlan.status === 'too_small' && topPick) {
+    return `So here's the honest answer: $${budget} won't buy an upgrade you'd actually feel. The cheapest one worth doing is the ${topPick.title} at about $${topPick.price} — saving up for it beats spending today.`
+  }
+  if (budgetPlan.status === 'ok' && !budgetPlan.fixesBottleneck && topPick && analysis?.bottleneck) {
+    return `So here's the plan: the real fix is your ${analysis.bottleneck.shortLabel}, but that doesn't fit $${budget} yet — in the meantime, the ${topPick.title} (about $${topPick.price}) is the best value move you can make.`
+  }
+  return recommendationSentence(budget, upgrade)
+}
+
 function fallbackExplanation({ analysis, budget, userGoal }) {
   const goal = goalPhrase(userGoal)
   const bottleneck = analysis?.bottleneck
-  const plan = recommendationSentence(budget, upgradeText(analysis?.recommendedFirstUpgrade))
+  const plan = planSentence({ analysis, budget })
   const price = priceNote(analysis?.pricingProvider)
 
   if (!bottleneck) {
@@ -103,11 +127,16 @@ function fallbackExplanation({ analysis, budget, userGoal }) {
 
   if (bottleneck.closeCall) {
     sentences.push(
-      `It was nearly a tie with your ${bottleneck.closeCallLabel.toLowerCase()}, so keep that one on your radar too.`,
+      `It was nearly a tie with your ${bottleneck.closeCallLabel}, so keep that one on your radar too.`,
     )
   }
 
-  sentences.push(plan, price)
+  sentences.push(plan)
+
+  // No parts are being suggested for a maxed-out build, so skip the price talk.
+  if (analysis?.budgetPlan?.status !== 'maxed_out') {
+    sentences.push(price)
+  }
 
   return sentences.filter(Boolean).join(' ')
 }

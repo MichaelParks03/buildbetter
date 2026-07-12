@@ -1,6 +1,7 @@
 import { createExplanation } from './aiService.js'
 import { matchCpu, matchGpu } from './hardwareMatcher.js'
 import { searchPricing } from './pricing/pricingService.js'
+import { planUpgrades } from './upgradePlanner.js'
 
 const useCases = ['Gaming', 'School', 'CAD', 'Streaming', 'General Use']
 
@@ -18,6 +19,16 @@ const COMPONENT_LABELS = {
   cpu: 'Processor (CPU)',
   ram: 'Memory (RAM)',
   storage: 'Storage',
+  none: 'No real bottleneck',
+}
+
+// Friendlier versions for use mid-sentence.
+const SHORT_LABELS = {
+  gpu: 'graphics card',
+  cpu: 'processor',
+  ram: 'memory (RAM)',
+  storage: 'storage',
+  none: 'nothing major',
 }
 
 function parseBudget(budget) {
@@ -133,10 +144,37 @@ export function assessBuild(build, useCase) {
     return null
   }
 
-  const top = deficits[0]
-  const runnerUp = deficits[1] || null
+  let top = deficits[0]
+
+  // Balance check: a much weaker CPU holds back any new graphics card, even
+  // when the raw GPU deficit looks bigger. Put the processor first so the
+  // user doesn't buy a card their CPU can't feed.
+  if (
+    top.component === 'gpu' &&
+    scores.cpu !== null &&
+    scores.gpu !== null &&
+    scores.cpu < scores.gpu - 15
+  ) {
+    const cpuEntry = deficits.find((entry) => entry.component === 'cpu')
+    if (cpuEntry) {
+      top = cpuEntry
+      reasons.push(
+        'Your processor is so far behind your graphics card that it would hold a new card back — so the processor comes first.',
+      )
+    }
+  }
+
+  // Nothing scored badly: the build is well matched, don't invent a problem.
+  if (top.score >= 85) {
+    top = { component: 'none', score: top.score, deficit: 0 }
+  }
+
+  const runnerUp = deficits.find((entry) => entry.component !== top.component) || null
   const closeCall =
-    runnerUp && top.deficit > 0 && (top.deficit - runnerUp.deficit) / top.deficit < 0.15
+    top.component !== 'none' &&
+    runnerUp &&
+    top.deficit > 0 &&
+    (top.deficit - runnerUp.deficit) / top.deficit < 0.15
       ? runnerUp.component
       : null
 
@@ -151,12 +189,13 @@ export function assessBuild(build, useCase) {
   return {
     component: top.component,
     label: COMPONENT_LABELS[top.component],
+    shortLabel: SHORT_LABELS[top.component],
     confidence,
     scores,
     weights,
     reasons,
     closeCall,
-    closeCallLabel: closeCall ? COMPONENT_LABELS[closeCall] : '',
+    closeCallLabel: closeCall ? SHORT_LABELS[closeCall] : '',
     cpuMatch: cpu.matched ? { name: cpu.name, score: cpu.score, platform: cpu.platform } : null,
     gpuMatch: gpu.matched
       ? { name: gpu.name, score: gpu.score, integrated: gpu.integrated }
@@ -247,14 +286,31 @@ export async function analyzeBuild(rawBuild) {
   }
 
   const bottleneck = assessBuild(build, useCase)
-  const focus = bottleneck ? UPGRADE_BY_COMPONENT[bottleneck.component] : legacyFocus(useCase)
+  const budgetPlan = planUpgrades({ bottleneck, budget, useCase })
+  const balanced = bottleneck?.component === 'none'
 
-  const pricing = await searchPricing({
-    query: focus.query,
-    category: focus.category,
-    condition: 'any',
-    limit: 4,
-  })
+  // When the budget can't reach the bottleneck, recommend the best move that
+  // actually fits instead of a part the user can't buy.
+  const bottleneckFocus =
+    bottleneck && !balanced ? UPGRADE_BY_COMPONENT[bottleneck.component] : legacyFocus(useCase)
+  const focus =
+    budgetPlan?.status === 'ok' && !budgetPlan.fixesBottleneck
+      ? UPGRADE_BY_COMPONENT[budgetPlan.topPickComponent]
+      : bottleneckFocus
+
+  // A balanced or maxed-out build gets no forced part list — the plan message
+  // explains why the list is empty.
+  const pricing =
+    budgetPlan && budgetPlan.picks.length > 0
+      ? { provider: 'curated', results: budgetPlan.picks, warnings: [] }
+      : budgetPlan?.status === 'maxed_out' || (balanced && budgetPlan)
+        ? { provider: 'curated', results: budgetPlan.picks, warnings: [] }
+        : await searchPricing({
+            query: focus.query,
+            category: focus.category,
+            condition: 'any',
+            limit: 4,
+          })
 
   const analysis = {
     currentBuildSummary: build,
@@ -265,8 +321,14 @@ export async function analyzeBuild(rawBuild) {
     },
     likelyBottleneck: bottleneck ? bottleneck.label : COMPONENT_LABELS[legacyFocus(useCase).category === 'ssd' ? 'storage' : legacyFocus(useCase).category],
     bottleneck,
-    recommendedFirstUpgrade: focus.upgrade,
-    upgradePath: getUpgradePath(budget, focus, bottleneck),
+    budgetPlan,
+    recommendedFirstUpgrade: balanced ? 'No upgrade needed right now' : focus.upgrade,
+    upgradePath: balanced
+      ? [
+          'Your parts are well matched — nothing urgently needs replacing.',
+          'Save toward a future full upgrade instead of forcing one now.',
+        ]
+      : getUpgradePath(budget, focus, bottleneck),
     recommendedParts: pricing.results,
     pricingProvider: pricing.provider,
     explanation: '',
