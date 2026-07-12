@@ -6,6 +6,10 @@
   command = "npm --prefix client ci && npm --prefix client run build"
   publish = "client/dist"
 
+# Vite 8 requires Node 20.19+ / 22.12+, so pin a modern Node for the build.
+[build.environment]
+  NODE_VERSION = "22"
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
