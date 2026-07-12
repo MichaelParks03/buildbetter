@@ -10,3 +10,6 @@ server/.env
 .idea
 .vscode/*
 !.vscode/extensions.json
+
+# Netlify local state
+.netlify

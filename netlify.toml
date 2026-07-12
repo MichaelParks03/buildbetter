@@ -1,0 +1,25 @@
+# Netlify configuration for BuildBetter
+# Frontend: Vite/React app in client/, published as a static site.
+# Backend: Netlify Functions in netlify/functions/, served at /api/* paths.
+
+[build]
+  command = "npm --prefix client ci && npm --prefix client run build"
+  publish = "client/dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Local development: `netlify dev` starts the Vite dev server and the
+# functions together on http://localhost:8888
+[dev]
+  command = "npm --prefix client run dev"
+  targetPort = 5173
+  port = 8888
+
+# Single-page app fallback. Function paths (/api/*) are matched before
+# redirects, so this does not shadow the API.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
