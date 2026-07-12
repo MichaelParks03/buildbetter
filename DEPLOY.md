@@ -35,10 +35,14 @@ to **Site configuration → Environment variables** in Netlify and add:
 | `PRICING_PROVIDER` | `curated` (default — hand-updated prices + live store links), `ebay`, `bestbuy`, `combined`, or `mock` |
 | `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | eBay API keys, once your developer account is approved |
 | `BESTBUY_API_KEY` | Best Buy API key, if you ever get one |
-| `OPENAI_API_KEY` / `OPENAI_MODEL` | Only if you want AI-written explanations instead of the built-in ones |
+
+BuildBetter writes its own explanations, so there is no AI service to configure.
 
 After adding or changing a variable, click **Deploys → Trigger deploy** so the
 functions pick it up.
+
+> **Note:** If you added an `OPENAI_API_KEY` in Netlify during an earlier attempt,
+> you can delete it — it's no longer used and doesn't affect anything.
 
 ## Running the site on your own computer
 

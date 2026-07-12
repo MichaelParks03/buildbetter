@@ -114,7 +114,7 @@ function planSentence({ analysis, budget }) {
   return recommendationSentence(budget, upgrade)
 }
 
-function fallbackExplanation({ analysis, budget, userGoal }) {
+function composeExplanation({ analysis, budget, userGoal }) {
   const goal = goalPhrase(userGoal)
   const bottleneck = analysis?.bottleneck
   const plan = planSentence({ analysis, budget })
@@ -142,64 +142,12 @@ function fallbackExplanation({ analysis, budget, userGoal }) {
   return sentences.filter(Boolean).join(' ')
 }
 
-export async function createExplanation({ build = {}, analysis = {}, pricing = [], userGoal = '', budget = 0 }) {
-  const warnings = []
-
-  if (!process.env.OPENAI_API_KEY) {
-    return {
-      source: 'fallback',
-      explanation: fallbackExplanation({ analysis, budget, userGoal }),
-      warnings,
-    }
-  }
-
-  try {
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini'
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Explain PC upgrade recommendations for beginners. Be concise, avoid fake benchmark numbers, and mention that prices are estimates.',
-          },
-          {
-            role: 'user',
-            content: JSON.stringify({ build, analysis, pricing, userGoal, budget }),
-          },
-        ],
-        max_tokens: 220,
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(`OpenAI request failed with ${response.status}`)
-    }
-
-    const data = await response.json()
-    const explanation = data.choices?.[0]?.message?.content?.trim()
-
-    if (!explanation) {
-      throw new Error('OpenAI returned an empty explanation.')
-    }
-
-    return {
-      source: 'openai',
-      explanation,
-      warnings,
-    }
-  } catch (error) {
-    warnings.push('OpenAI explanation failed, so BuildBetter used the rule-based fallback.')
-    return {
-      source: 'fallback',
-      explanation: fallbackExplanation({ analysis, budget, userGoal }),
-      warnings,
-    }
+// BuildBetter writes its own beginner-friendly explanation from the analysis.
+// No external AI service is used, so there is nothing to fail or warn about.
+export async function createExplanation({ analysis = {}, userGoal = '', budget = 0 }) {
+  return {
+    source: 'builtin',
+    explanation: composeExplanation({ analysis, budget, userGoal }),
+    warnings: [],
   }
 }

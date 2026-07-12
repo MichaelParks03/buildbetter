@@ -183,10 +183,7 @@ function Results({ analysis }) {
         )}
       </ResultCard>
 
-      <ResultCard
-        title="Explanation"
-        badge={analysis.explanationSource === 'openai' ? 'AI-generated explanation' : 'Rule-based explanation'}
-      >
+      <ResultCard title="Explanation">
         <p className="leading-7 text-slate-300">{analysis.explanation}</p>
       </ResultCard>
     </aside>

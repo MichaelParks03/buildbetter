@@ -343,7 +343,7 @@ export async function analyzeBuild(rawBuild) {
     recommendedParts: pricing.results,
     pricingProvider: pricing.provider,
     explanation: '',
-    explanationSource: 'fallback',
+    explanationSource: 'builtin',
     warnings: [...warnings, ...pricing.warnings],
   }
 
