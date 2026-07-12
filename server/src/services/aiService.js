@@ -50,29 +50,33 @@ function priceNote(pricingProvider) {
   return `One more thing — prices change fast at real stores, so it's worth a quick double-check before you actually buy.`
 }
 
+function partClause(info) {
+  if (!info) return ''
+  const qualifier = info.estimated ? ' (estimated)' : ''
+  return `your ${info.name} at ${info.score}/100${qualifier}`
+}
+
 function scoreStackSentence(bottleneck) {
-  const cpu = bottleneck.cpuMatch
-  const gpu = bottleneck.gpuMatch
+  const cpu = partClause(bottleneck.cpuInfo)
+  const gpu = partClause(bottleneck.gpuInfo)
 
   if (cpu && gpu) {
-    return `Here's how your parts stack up: your ${cpu.name} scores about ${cpu.score}/100 in our rankings, while your ${gpu.name} comes in at ${gpu.score}/100.`
+    return `Here's how your parts stack up: ${cpu}, and ${gpu}.`
   }
-  if (cpu) {
-    return `We recognized your ${cpu.name} — it scores about ${cpu.score}/100 in our rankings.`
-  }
-  if (gpu) {
-    return `We recognized your ${gpu.name} — it scores about ${gpu.score}/100 in our rankings.`
-  }
+  if (cpu) return `We scored ${cpu}.`
+  if (gpu) return `We scored ${gpu}.`
   return ''
 }
 
 function verdictSentence(bottleneck, goal) {
+  if (bottleneck.wellBalanced) {
+    return `The good news: your parts are already well matched for ${goal}, so nothing is badly holding you back. Your ${bottleneck.shortLabel} has the most room to grow, so that's where any spare money goes furthest.`
+  }
   const map = {
     gpu: `For ${goal}, the graphics card does most of the heavy lifting — and right now it's the weakest link in your build, so that's where an upgrade will feel the most noticeable.`,
     cpu: `For ${goal}, the processor sets the pace — and yours is the part falling furthest behind, so it's the smartest place to spend.`,
     ram: `${bottleneck.ramGb ? `${bottleneck.ramGb}GB of` : 'Your'} memory is what's pinching you here — RAM is cheap compared to most upgrades and smooths out ${goal} more than people expect.`,
     storage: `Your ${bottleneck.storageKind || 'storage'} is the drag here — moving to a fast NVMe SSD is the difference between waiting for things to load and just... not.`,
-    none: `And here's the good news: nothing is really holding you back. Your parts are well matched for ${goal}.`,
   }
   return map[bottleneck.component] || ''
 }
@@ -93,8 +97,10 @@ function planSentence({ analysis, budget }) {
 
   const topPick = budgetPlan.picks?.[0]
 
-  if (budgetPlan.status === 'maxed_out') {
-    return `And honestly? Your build is already strong across the board — nothing in our catalog would be a meaningful step up, so save your money for a bigger jump later.`
+  if (budgetPlan.status === 'top_tier') {
+    return topPick
+      ? `So here's the plan: you're already near the top, so there's no urgent upgrade — but if you want the best ${analysis.bottleneck.shortLabel} we track, it's the ${topPick.title}.`
+      : `So here's the plan: you're already near the top — put any spare money toward a future full rebuild rather than a small step now.`
   }
   if (budgetPlan.status === 'no_budget') {
     return `So here's the plan: ${upgrade} would make the biggest difference here — and since you didn't give a budget, we ranked the picks below purely by value for money.`
@@ -131,12 +137,7 @@ function fallbackExplanation({ analysis, budget, userGoal }) {
     )
   }
 
-  sentences.push(plan)
-
-  // No parts are being suggested for a maxed-out build, so skip the price talk.
-  if (analysis?.budgetPlan?.status !== 'maxed_out') {
-    sentences.push(price)
-  }
+  sentences.push(plan, price)
 
   return sentences.filter(Boolean).join(' ')
 }

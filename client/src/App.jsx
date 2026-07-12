@@ -60,14 +60,6 @@ function App() {
     }
   }
 
-  function handleBrowserGpu(gpu) {
-    setFormData((currentData) => ({
-      ...currentData,
-      // Don't overwrite something the user already typed.
-      gpu: currentData.gpu || gpu,
-    }))
-  }
-
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
@@ -144,7 +136,6 @@ function App() {
               isParsing={isParsing}
               onTextChange={setSystemInfoText}
               onAutoFill={handleAutoFill}
-              onBrowserGpu={handleBrowserGpu}
             />
 
             <div className="flex items-center gap-4 text-sm text-slate-500">

@@ -1,5 +1,5 @@
 import { createExplanation } from './aiService.js'
-import { matchCpu, matchGpu } from './hardwareMatcher.js'
+import { estimateCpuScore, estimateGpuScore, matchCpu, matchGpu } from './hardwareMatcher.js'
 import { searchPricing } from './pricing/pricingService.js'
 import { planUpgrades } from './upgradePlanner.js'
 
@@ -19,7 +19,6 @@ const COMPONENT_LABELS = {
   cpu: 'Processor (CPU)',
   ram: 'Memory (RAM)',
   storage: 'Storage',
-  none: 'No real bottleneck',
 }
 
 // Friendlier versions for use mid-sentence.
@@ -28,7 +27,6 @@ const SHORT_LABELS = {
   cpu: 'processor',
   ram: 'memory (RAM)',
   storage: 'storage',
-  none: 'nothing major',
 }
 
 function parseBudget(budget) {
@@ -54,9 +52,9 @@ function ramScore(gb) {
 
 function storageScore(storageText) {
   const value = String(storageText || '').toLowerCase()
-  if (!value.trim()) return { score: null, kind: '' }
-  if (value.includes('nvme') || value.includes('m.2')) return { score: 90, kind: 'NVMe SSD' }
-  if (value.includes('ssd') || value.includes('solid state')) return { score: 72, kind: 'SSD' }
+  if (!value.trim()) return { score: null, kind: '', estimated: false }
+  if (value.includes('nvme') || value.includes('m.2')) return { score: 90, kind: 'NVMe SSD', estimated: false }
+  if (value.includes('ssd') || value.includes('solid state')) return { score: 72, kind: 'SSD', estimated: false }
   if (
     value.includes('hdd') ||
     value.includes('hard drive') ||
@@ -64,71 +62,92 @@ function storageScore(storageText) {
     value.includes('5400') ||
     value.includes('7200')
   ) {
-    return { score: 15, kind: 'hard drive (HDD)' }
+    return { score: 15, kind: 'hard drive (HDD)', estimated: false }
   }
-  return { score: null, kind: 'unknown type' }
+  // Something was entered (e.g. "512GB") but the type is unclear. Most PCs
+  // sold in the last several years use an SSD, so assume that rather than
+  // leaving the field blank.
+  return { score: 60, kind: 'drive (assumed SSD)', estimated: true }
 }
 
 // Scores every component 0-100, then finds the one dragging the build down
 // the most for this use case: deficit = (100 - score) x importance weight.
+// Every part the user actually entered gets a score: an exact match from the
+// tier dataset when possible, otherwise a heuristic estimate.
 export function assessBuild(build, useCase) {
   const weights = USE_CASE_WEIGHTS[useCase] || USE_CASE_WEIGHTS['General Use']
   const reasons = []
+  let softCount = 0 // estimated or assumed values that lower our confidence
 
+  // --- CPU ---
   const cpu = matchCpu(build.cpu)
-  const gpu = matchGpu(build.gpu)
-  const ramGb = parseRamGb(build.ram)
-  const ram = ramScore(ramGb)
-  const storage = storageScore(build.storage)
-
-  const scores = {
-    cpu: cpu.matched ? cpu.score : null,
-    gpu: gpu.matched ? gpu.score : null,
-    ram,
-    storage: storage.score,
-  }
-
-  let unknowns = 0
-
+  let cpuInfo = null
   if (cpu.matched) {
+    cpuInfo = { name: cpu.name, score: cpu.score, estimated: false }
     reasons.push(`We recognized your processor as the ${cpu.name} — it scores ${cpu.score}/100 in our rankings.`)
-  } else if (cpu.missing) {
-    unknowns += 1
-    reasons.push('No processor was listed, so it was left out of the comparison.')
+  } else if (build.cpu.trim()) {
+    const score = estimateCpuScore(build.cpu)
+    cpuInfo = { name: build.cpu.trim(), score, estimated: true }
+    softCount += 1
+    reasons.push(`We didn't have "${build.cpu.trim()}" in our rankings, so we estimated it at about ${score}/100.`)
   } else {
-    unknowns += 1
-    reasons.push(`We couldn't identify the processor "${build.cpu}", so it was left out of the comparison.`)
+    reasons.push('No processor was listed, so it was left out of the comparison.')
   }
 
+  // --- GPU ---
+  const gpu = matchGpu(build.gpu)
+  let gpuInfo = null
   if (gpu.matched) {
+    gpuInfo = { name: gpu.name, score: gpu.score, estimated: false, integrated: gpu.integrated }
     const suffix = gpu.integrated
-      ? ' — that’s built-in graphics, not a separate card, so it scores very low for heavier work.'
+      ? ' — that’s built-in graphics, not a separate card, so it scores low for heavier work.'
       : ` — it scores ${gpu.score}/100 in our rankings.`
     reasons.push(`We recognized your graphics as the ${gpu.name}${suffix}`)
-  } else if (gpu.missing) {
-    // No GPU listed usually means integrated graphics. Assume a very low
-    // score rather than skipping the most important gaming component.
-    scores.gpu = 8
+  } else if (build.gpu.trim()) {
+    const score = estimateGpuScore(build.gpu)
+    gpuInfo = { name: build.gpu.trim(), score, estimated: true }
+    softCount += 1
+    reasons.push(`We didn't have "${build.gpu.trim()}" in our rankings, so we estimated it at about ${score}/100.`)
+  } else {
+    // No GPU listed usually means integrated graphics. Assume a low score
+    // rather than skipping the most important gaming component.
+    gpuInfo = { name: 'built-in graphics (assumed)', score: 8, estimated: true, integrated: true }
+    softCount += 1
     reasons.push(
       'No graphics card was listed, so we assumed built-in graphics. If you have a separate card, add it for a better answer.',
     )
-  } else {
-    unknowns += 1
-    reasons.push(`We couldn't identify the graphics card "${build.gpu}", so it was left out of the comparison.`)
   }
 
+  // --- RAM ---
+  const ramGb = parseRamGb(build.ram)
+  let ram = ramScore(ramGb)
   if (ram !== null) {
     reasons.push(`${ramGb}GB of RAM scores ${ram}/100.`)
+  } else if (build.ram.trim()) {
+    // Text entered but no size we could read — assume a typical 16GB.
+    ram = 45
+    softCount += 1
+    reasons.push(`We couldn't read a size from "${build.ram.trim()}", so we assumed about 16GB (${ram}/100).`)
   } else {
-    unknowns += 1
     reasons.push('No RAM amount was listed, so memory was left out of the comparison.')
   }
 
-  if (storage.score !== null) {
+  // --- Storage ---
+  const storage = storageScore(build.storage)
+  if (storage.score !== null && !storage.estimated) {
     reasons.push(`Your storage looks like a ${storage.kind}, which scores ${storage.score}/100.`)
+  } else if (storage.estimated) {
+    softCount += 1
+    reasons.push(`We couldn't tell if your storage is an SSD or hard drive, so we assumed an SSD (${storage.score}/100).`)
   } else {
-    unknowns += 1
-    reasons.push('We couldn’t tell what kind of storage you have (SSD vs hard drive), so it was left out.')
+    reasons.push('No storage was listed, so it was left out of the comparison.')
+  }
+
+  const scores = {
+    cpu: cpuInfo ? cpuInfo.score : null,
+    gpu: gpuInfo ? gpuInfo.score : null,
+    ram,
+    storage: storage.score,
   }
 
   const deficits = Object.entries(scores)
@@ -164,14 +183,10 @@ export function assessBuild(build, useCase) {
     }
   }
 
-  // Nothing scored badly: the build is well matched, don't invent a problem.
-  if (top.score >= 85) {
-    top = { component: 'none', score: top.score, deficit: 0 }
-  }
+  const wellBalanced = top.score >= 85
 
   const runnerUp = deficits.find((entry) => entry.component !== top.component) || null
   const closeCall =
-    top.component !== 'none' &&
     runnerUp &&
     top.deficit > 0 &&
     (top.deficit - runnerUp.deficit) / top.deficit < 0.15
@@ -179,8 +194,8 @@ export function assessBuild(build, useCase) {
       : null
 
   let confidence = 'high'
-  if (unknowns === 1) confidence = 'medium'
-  if (unknowns >= 2) confidence = 'low'
+  if (softCount === 1) confidence = 'medium'
+  if (softCount >= 2) confidence = 'low'
   if ((cpu.matched && cpu.laptopVariant) || (gpu.matched && gpu.laptopVariant)) {
     if (confidence === 'high') confidence = 'medium'
     reasons.push('Laptop parts run slower than desktop versions of the same chip, so scores were adjusted down.')
@@ -196,6 +211,10 @@ export function assessBuild(build, useCase) {
     reasons,
     closeCall,
     closeCallLabel: closeCall ? SHORT_LABELS[closeCall] : '',
+    wellBalanced,
+    cpuInfo,
+    gpuInfo,
+    // Precise matches only — the planner needs the socket/DDR platform.
     cpuMatch: cpu.matched ? { name: cpu.name, score: cpu.score, platform: cpu.platform } : null,
     gpuMatch: gpu.matched
       ? { name: gpu.name, score: gpu.score, integrated: gpu.integrated }
@@ -287,30 +306,27 @@ export async function analyzeBuild(rawBuild) {
 
   const bottleneck = assessBuild(build, useCase)
   const budgetPlan = planUpgrades({ bottleneck, budget, useCase })
-  const balanced = bottleneck?.component === 'none'
 
   // When the budget can't reach the bottleneck, recommend the best move that
   // actually fits instead of a part the user can't buy.
-  const bottleneckFocus =
-    bottleneck && !balanced ? UPGRADE_BY_COMPONENT[bottleneck.component] : legacyFocus(useCase)
+  const bottleneckFocus = bottleneck ? UPGRADE_BY_COMPONENT[bottleneck.component] : legacyFocus(useCase)
   const focus =
     budgetPlan?.status === 'ok' && !budgetPlan.fixesBottleneck
       ? UPGRADE_BY_COMPONENT[budgetPlan.topPickComponent]
       : bottleneckFocus
 
-  // A balanced or maxed-out build gets no forced part list — the plan message
-  // explains why the list is empty.
+  // The planner always returns at least one pick now, so use it whenever we
+  // have a scored bottleneck. Only fall back to a raw catalog search when we
+  // couldn't score anything at all.
   const pricing =
     budgetPlan && budgetPlan.picks.length > 0
       ? { provider: 'curated', results: budgetPlan.picks, warnings: [] }
-      : budgetPlan?.status === 'maxed_out' || (balanced && budgetPlan)
-        ? { provider: 'curated', results: budgetPlan.picks, warnings: [] }
-        : await searchPricing({
-            query: focus.query,
-            category: focus.category,
-            condition: 'any',
-            limit: 4,
-          })
+      : await searchPricing({
+          query: focus.query,
+          category: focus.category,
+          condition: 'any',
+          limit: 4,
+        })
 
   const analysis = {
     currentBuildSummary: build,
@@ -322,13 +338,8 @@ export async function analyzeBuild(rawBuild) {
     likelyBottleneck: bottleneck ? bottleneck.label : COMPONENT_LABELS[legacyFocus(useCase).category === 'ssd' ? 'storage' : legacyFocus(useCase).category],
     bottleneck,
     budgetPlan,
-    recommendedFirstUpgrade: balanced ? 'No upgrade needed right now' : focus.upgrade,
-    upgradePath: balanced
-      ? [
-          'Your parts are well matched — nothing urgently needs replacing.',
-          'Save toward a future full upgrade instead of forcing one now.',
-        ]
-      : getUpgradePath(budget, focus, bottleneck),
+    recommendedFirstUpgrade: focus.upgrade,
+    upgradePath: getUpgradePath(budget, focus, bottleneck),
     recommendedParts: pricing.results,
     pricingProvider: pricing.provider,
     explanation: '',

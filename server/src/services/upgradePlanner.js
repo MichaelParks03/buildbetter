@@ -34,6 +34,21 @@ function targetScore(part) {
 }
 
 const CATEGORY_TO_COMPONENT = { gpu: 'gpu', cpu: 'cpu', ram: 'ram', ssd: 'storage' }
+const COMPONENT_TO_CATEGORY = { gpu: 'gpu', cpu: 'cpu', ram: 'ram', storage: 'ssd' }
+
+// The single highest-scoring catalog part in a category — used to give a
+// concrete "best-in-class" recommendation even when the user's build already
+// beats everything we sell.
+function bestPartInCategory(category) {
+  let best = null
+  for (const part of curatedParts) {
+    if (part.category !== category) continue
+    const score = targetScore(part)
+    if (score === null) continue
+    if (!best || score > best.score) best = { part, score }
+  }
+  return best ? best.part : null
+}
 
 function ddrTypeForPlatform(platform) {
   if (platform === 'am5' || platform === 'lga1851') return 'ddr5'
@@ -97,12 +112,28 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
   }
 
   if (candidates.length === 0) {
+    // The build already beats everything in our catalog. Still give a concrete
+    // recommendation: the best-in-class part in the weakest category.
+    const category = COMPONENT_TO_CATEGORY[bottleneck.component]
+    const best = bestPartInCategory(category)
     return {
-      status: 'maxed_out',
+      status: 'top_tier',
       budget,
-      picks: [],
-      message:
-        'Good news, sort of: nothing in our catalog would meaningfully beat what you already have. Your best move is saving for a bigger jump later.',
+      topPickComponent: bottleneck.component,
+      fixesBottleneck: true,
+      picks: best
+        ? [
+            {
+              ...toCuratedResult(best),
+              component: bottleneck.component,
+              weightedGain: 0,
+              note: 'Best-in-class in this category',
+            },
+          ]
+        : [],
+      message: best
+        ? `Your build is already strong — nothing here is a clear step up. If you ever want the best ${bottleneck.shortLabel} we track, it’s the ${best.title}.`
+        : `Your build is already strong — nothing in our catalog is a clear step up right now.`,
     }
   }
 
