@@ -105,7 +105,7 @@ function App() {
         <StepCard
           number="2"
           title="Check Pricing"
-          description="See demo pricing today, with real marketplace pricing coming soon."
+          description="See typical prices for each part, with one-click links to live prices at Amazon, Newegg, and eBay."
         />
         <StepCard
           number="3"

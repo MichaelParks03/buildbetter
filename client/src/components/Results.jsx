@@ -17,7 +17,9 @@ function Results({ analysis }) {
       ? 'Live pricing source: Best Buy'
       : analysis.pricingProvider === 'ebay'
         ? 'Live pricing source: eBay'
-        : 'Demo estimate'
+        : analysis.pricingProvider === 'curated'
+          ? 'Typical prices + live store links'
+          : 'Demo estimate'
 
   return (
     <aside className="space-y-5 rounded-3xl border border-cyan-900 bg-slate-900 p-6">
@@ -79,7 +81,11 @@ function Results({ analysis }) {
       </ResultCard>
 
       <ResultCard title="Pricing" badge={providerLabel}>
-        <p className="mb-4 text-sm text-slate-400">Prices may change.</p>
+        <p className="mb-4 text-sm text-slate-400">
+          {analysis.pricingProvider === 'curated'
+            ? 'These are typical prices we update by hand. Click a store to see today’s live price.'
+            : 'Prices may change.'}
+        </p>
         {analysis.recommendedParts?.length > 0 ? (
           <div className="space-y-3">
             {analysis.recommendedParts.map((part) => (
@@ -87,17 +93,49 @@ function Results({ analysis }) {
                 key={`${part.source}-${part.title}-${part.price}`}
                 className="rounded-xl border border-slate-800 bg-slate-900 p-4"
               >
-                <p className="font-semibold text-white">{part.title}</p>
+                <p className="font-semibold text-white">
+                  {part.url ? (
+                    <a
+                      href={part.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline decoration-cyan-700 underline-offset-4 hover:text-cyan-300"
+                    >
+                      {part.title}
+                    </a>
+                  ) : (
+                    part.title
+                  )}
+                </p>
                 <p className="text-cyan-300">${part.price.toFixed(2)} {part.currency}</p>
                 <p className="text-sm text-slate-400">
                   {part.source} - {part.condition} - {part.availability}
                 </p>
+                {part.links && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {[
+                      ['Amazon', part.links.amazon],
+                      ['Newegg', part.links.newegg],
+                      ['eBay', part.links.ebay],
+                    ].map(([store, href]) => (
+                      <a
+                        key={store}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-lg border border-cyan-900 bg-slate-950 px-3 py-1.5 text-sm font-medium text-cyan-300 transition hover:border-cyan-500 hover:text-cyan-200"
+                      >
+                        Check {store} price
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         ) : (
           <p className="rounded-xl border border-slate-800 bg-slate-900 p-4 text-sm text-slate-400">
-            No demo pricing matched this part yet.
+            No priced parts matched this recommendation yet.
           </p>
         )}
       </ResultCard>

@@ -1,29 +1,30 @@
 import { searchAmazonCreatorsPricing } from './amazonCreatorsProvider.js'
 import { searchBestBuyPricing } from './bestBuyProvider.js'
+import { searchCuratedPricing } from './curatedPricingProvider.js'
 import { searchEbayPricing } from './ebayProvider.js'
 import { searchMockPricing } from './mockPricingProvider.js'
 
 export async function searchPricing(searchOptions = {}) {
-  const provider = (process.env.PRICING_PROVIDER || 'mock').toLowerCase()
+  const provider = (process.env.PRICING_PROVIDER || 'curated').toLowerCase()
   const warnings = []
 
-  async function withMockFallback(result) {
+  async function withCuratedFallback(result) {
     if (result.results?.length) return result
 
-    const mock = await searchMockPricing(searchOptions)
+    const curated = await searchCuratedPricing(searchOptions)
     return {
-      provider: 'mock',
-      results: mock.results,
-      warnings: [...(result.warnings || []), ...mock.warnings],
+      provider: 'curated',
+      results: curated.results,
+      warnings: [...(result.warnings || []), ...curated.warnings],
     }
   }
 
   if (provider === 'bestbuy') {
-    return withMockFallback(await searchBestBuyPricing(searchOptions))
+    return withCuratedFallback(await searchBestBuyPricing(searchOptions))
   }
 
   if (provider === 'ebay') {
-    return withMockFallback(await searchEbayPricing(searchOptions))
+    return withCuratedFallback(await searchEbayPricing(searchOptions))
   }
 
   if (provider === 'combined') {
@@ -42,22 +43,26 @@ export async function searchPricing(searchOptions = {}) {
       }
     }
 
-    const mock = await searchMockPricing(searchOptions)
+    const curated = await searchCuratedPricing(searchOptions)
     return {
-      provider: 'mock',
-      results: mock.results,
-      warnings: [...combinedWarnings, ...mock.warnings],
+      provider: 'curated',
+      results: curated.results,
+      warnings: [...combinedWarnings, ...curated.warnings],
     }
   }
 
   if (provider === 'amazon') {
     warnings.push('Amazon is future optional scaffolding, not the primary pricing provider.')
     const amazon = await searchAmazonCreatorsPricing(searchOptions)
-    return withMockFallback({
+    return withCuratedFallback({
       ...amazon,
       warnings: [...warnings, ...amazon.warnings],
     })
   }
 
-  return searchMockPricing(searchOptions)
+  if (provider === 'mock') {
+    return searchMockPricing(searchOptions)
+  }
+
+  return searchCuratedPricing(searchOptions)
 }

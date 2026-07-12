@@ -55,6 +55,9 @@ function priceNote(pricingProvider) {
   if (pricingProvider === 'mock') {
     return `One more thing — the prices you're seeing right now are demo numbers, not live prices, so check a real store before you buy.`
   }
+  if (pricingProvider === 'curated') {
+    return `One more thing — the prices shown are typical store prices we keep updated by hand, so use the store links to check today's exact price before you buy.`
+  }
   return `One more thing — prices change fast at real stores, so it's worth a quick double-check before you actually buy.`
 }
 
@@ -71,7 +74,6 @@ export async function createExplanation({ build = {}, analysis = {}, pricing = [
   const warnings = []
 
   if (!process.env.OPENAI_API_KEY) {
-    warnings.push('Using rule-based explanation because no OpenAI API key is configured.')
     return {
       source: 'fallback',
       explanation: fallbackExplanation({ analysis, budget, userGoal }),
