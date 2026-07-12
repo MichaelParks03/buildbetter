@@ -49,7 +49,6 @@ function Results({ analysis }) {
           <SummaryItem label="Storage" value={build.storage} />
           <SummaryItem label="Motherboard" value={build.motherboard} />
           <SummaryItem label="Power Supply" value={build.powerSupply} />
-          <SummaryItem label="Case or Model" value={build.case} />
           <SummaryItem label="Budget" value={build.budget ? `$${build.budget}` : ''} />
           <SummaryItem label="Use Case" value={build.useCase} />
         </dl>

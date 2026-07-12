@@ -109,7 +109,6 @@ export async function analyzeBuild(rawBuild) {
     storage: rawBuild.storage || '',
     motherboard: rawBuild.motherboard || '',
     powerSupply: rawBuild.powerSupply || rawBuild.psu || '',
-    case: rawBuild.case || rawBuild.caseName || '',
     budget,
     useCase,
   }

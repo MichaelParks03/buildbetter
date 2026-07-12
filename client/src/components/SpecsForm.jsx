@@ -14,7 +14,6 @@ function SpecsForm({ formData, isAnalyzing, onChange, onSubmit }) {
         <Input label="Storage" name="storage" value={formData.storage} onChange={onChange} placeholder="Example: 1TB SSD" />
         <Input label="Motherboard" name="motherboard" value={formData.motherboard} onChange={onChange} placeholder="Example: B550" />
         <Input label="Power Supply" name="powerSupply" value={formData.powerSupply} onChange={onChange} placeholder="Example: 650W Gold" />
-        <Input label="Case / System Model" name="caseName" value={formData.caseName} onChange={onChange} placeholder="Optional" />
         <Input label="Upgrade Budget" name="budget" value={formData.budget} onChange={onChange} placeholder="Example: $500" />
       </div>
 

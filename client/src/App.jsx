@@ -15,7 +15,6 @@ const initialFormData = {
   storage: '',
   motherboard: '',
   powerSupply: '',
-  caseName: '',
   budget: '',
   useCase: 'Gaming',
 }
@@ -51,7 +50,6 @@ function App() {
         ram: parsed.ram || currentData.ram,
         storage: parsed.storage || currentData.storage,
         motherboard: parsed.motherboard || currentData.motherboard,
-        caseName: parsed.case || parsed.systemModel || currentData.caseName,
       }))
     } catch {
       setError(
@@ -81,7 +79,6 @@ function App() {
     try {
       const result = await analyzeBuild({
         ...formData,
-        case: formData.caseName,
         budget: budgetNumber || formData.budget,
       })
       setAnalysis(result)

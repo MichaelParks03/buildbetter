@@ -38,7 +38,6 @@ export function parseSystemInfo(systemInfoText) {
     'Total Physical Memory',
   ])
   const storage = getValue(text, 'Storage')
-  const systemModel = getFirstValue(text, ['System Model', 'Device Name'])
   const os = getFirstValue(text, ['OS Name', 'Edition'])
   const boardManufacturer = getValue(text, 'BaseBoard Manufacturer')
   const boardProduct = getValue(text, 'BaseBoard Product')
@@ -58,8 +57,6 @@ export function parseSystemInfo(systemInfoText) {
     ram,
     storage,
     motherboard: [boardManufacturer, boardProduct].filter(Boolean).join(' '),
-    case: systemModel,
-    systemModel,
     os,
     warnings,
   }

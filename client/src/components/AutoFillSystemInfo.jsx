@@ -11,7 +11,6 @@ function AutoFillSystemInfo({
     ['RAM', detectedSpecs?.ram],
     ['Storage', detectedSpecs?.storage],
     ['Motherboard', detectedSpecs?.motherboard],
-    ['System Model', detectedSpecs?.systemModel || detectedSpecs?.case],
     ['OS', detectedSpecs?.os],
   ].filter((item) => item[1])
 
