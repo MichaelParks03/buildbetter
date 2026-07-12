@@ -13,8 +13,29 @@ function SpecsForm({ formData, isAnalyzing, onChange, onSubmit }) {
         <Input label="RAM" name="ram" value={formData.ram} onChange={onChange} placeholder="Example: 16GB DDR4" />
         <Input label="Storage" name="storage" value={formData.storage} onChange={onChange} placeholder="Example: 1TB SSD" />
         <Input label="Motherboard" name="motherboard" value={formData.motherboard} onChange={onChange} placeholder="Example: B550" />
-        <Input label="Power Supply" name="powerSupply" value={formData.powerSupply} onChange={onChange} placeholder="Example: 650W Gold" />
-        <Input label="Upgrade Budget" name="budget" value={formData.budget} onChange={onChange} placeholder="Example: $500" />
+        <label className="block">
+          <span className="text-sm font-medium text-slate-300">
+            Power Supply
+            <span className="ml-2 text-xs font-normal text-slate-500">Optional</span>
+            {formData.powerSupply !== 'Not sure' && (
+              <button
+                type="button"
+                onClick={() => onChange({ target: { name: 'powerSupply', value: 'Not sure' } })}
+                className="ml-2 text-xs font-normal text-cyan-400 underline-offset-2 hover:underline"
+              >
+                I'm not sure
+              </button>
+            )}
+          </span>
+          <input
+            name="powerSupply"
+            value={formData.powerSupply}
+            onChange={onChange}
+            placeholder="Example: 650W — fine to leave blank"
+            className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-600 focus:border-cyan-400"
+          />
+        </label>
+        <Input label="Upgrade Budget" name="budget" value={formData.budget} onChange={onChange} placeholder="Example: $500" inputMode="decimal" />
       </div>
 
       <label className="block">
@@ -42,7 +63,7 @@ function SpecsForm({ formData, isAnalyzing, onChange, onSubmit }) {
   )
 }
 
-function Input({ label, name, value, onChange, placeholder, hint }) {
+function Input({ label, name, value, onChange, placeholder, hint, inputMode }) {
   return (
     <label className="block">
       <span className="text-sm font-medium text-slate-300">
@@ -54,6 +75,7 @@ function Input({ label, name, value, onChange, placeholder, hint }) {
         value={value}
         onChange={onChange}
         placeholder={placeholder}
+        inputMode={inputMode}
         className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-600 focus:border-cyan-400"
       />
     </label>
