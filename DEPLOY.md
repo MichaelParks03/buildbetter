@@ -26,13 +26,13 @@ Every time you push to `main` on GitHub, the site redeploys itself.
 
 ### 3. Environment variables (all optional right now)
 
-The site works with zero environment variables — it uses demo pricing and the
-built-in explanation writer. If you want to turn on optional features later, go
+The site works with zero environment variables — it uses the curated parts
+catalog with live store links and the built-in explanation writer. If you want to turn on optional features later, go
 to **Site configuration → Environment variables** in Netlify and add:
 
 | Variable | What it does |
 | --- | --- |
-| `PRICING_PROVIDER` | `mock` (default), `ebay`, `bestbuy`, or `combined` |
+| `PRICING_PROVIDER` | `curated` (default — hand-updated prices + live store links), `ebay`, `bestbuy`, `combined`, or `mock` |
 | `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | eBay API keys, once your developer account is approved |
 | `BESTBUY_API_KEY` | Best Buy API key, if you ever get one |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | Only if you want AI-written explanations instead of the built-in ones |
