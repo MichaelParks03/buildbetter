@@ -10,26 +10,15 @@ function goalPhrase(userGoal) {
   return GOAL_PHRASES[userGoal] || 'what you use it for'
 }
 
-function bottleneckIntro(bottleneck, goal) {
-  const map = {
-    'Low RAM': `The first thing that jumps out is your memory (RAM) — you don't have much to work with, and that's usually what makes everything feel sluggish, from opening apps to switching between tabs.`,
-    Storage: `You're running on an older hard drive instead of a solid-state drive (SSD), and that's a bigger deal than most people realize — it's the difference between things loading instantly and just... waiting.`,
-    'Missing GPU details': `I don't have clear details on your graphics card, and for ${goal} that's usually the part that matters most — so that's the first thing worth double-checking.`,
-    GPU: `Your graphics card is what's holding things back here. It's the part doing the heavy lifting for ${goal}, so it's also where an upgrade will feel the most noticeable.`,
-    'Storage or RAM': `Nothing looks dramatically wrong, but storage speed and memory are the two usual culprits behind everyday slowness — either one would be a safe, worthwhile upgrade.`,
-    'CPU, GPU, or RAM': `CAD software leans on your processor, graphics card, and memory all at the same time, so it's worth checking all three before spending anything.`,
-    'CPU or GPU encoder': `Streaming puts a lot of load on your processor (and a newer graphics card can help take some of that off its plate), so that combo is probably what's slowing you down.`,
-    'Balanced upgrade needed': `Nothing stands out as badly broken here, so instead of guessing, the smart move is just picking the single upgrade that gives you the most value for your money.`,
-  }
-  return map[bottleneck] || `The part most likely holding you back is ${(bottleneck || 'one part of your setup').toLowerCase()}.`
-}
-
 function upgradeText(upgrade) {
   const map = {
     RAM: 'adding more memory (RAM)',
+    'More RAM': 'adding more memory (RAM)',
     SSD: 'switching to a faster SSD drive',
+    'NVMe SSD': 'switching to a fast NVMe SSD',
     GPU: 'getting a new graphics card',
     'Graphics card': 'getting a new graphics card',
+    Processor: 'upgrading your processor',
     'SSD or memory': 'adding more storage speed or memory',
     'CPU or workstation-friendly GPU': 'upgrading your processor or getting a workstation-friendly graphics card',
     'CPU or modern GPU': 'upgrading your processor or getting a newer graphics card',
@@ -61,13 +50,66 @@ function priceNote(pricingProvider) {
   return `One more thing — prices change fast at real stores, so it's worth a quick double-check before you actually buy.`
 }
 
+function scoreStackSentence(bottleneck) {
+  const cpu = bottleneck.cpuMatch
+  const gpu = bottleneck.gpuMatch
+
+  if (cpu && gpu) {
+    return `Here's how your parts stack up: your ${cpu.name} scores about ${cpu.score}/100 in our rankings, while your ${gpu.name} comes in at ${gpu.score}/100.`
+  }
+  if (cpu) {
+    return `We recognized your ${cpu.name} — it scores about ${cpu.score}/100 in our rankings.`
+  }
+  if (gpu) {
+    return `We recognized your ${gpu.name} — it scores about ${gpu.score}/100 in our rankings.`
+  }
+  return ''
+}
+
+function verdictSentence(bottleneck, goal) {
+  const map = {
+    gpu: `For ${goal}, the graphics card does most of the heavy lifting — and right now it's the weakest link in your build, so that's where an upgrade will feel the most noticeable.`,
+    cpu: `For ${goal}, the processor sets the pace — and yours is the part falling furthest behind, so it's the smartest place to spend.`,
+    ram: `${bottleneck.ramGb ? `${bottleneck.ramGb}GB of` : 'Your'} memory is what's pinching you here — RAM is cheap compared to most upgrades and smooths out ${goal} more than people expect.`,
+    storage: `Your ${bottleneck.storageKind || 'storage'} is the drag here — moving to a fast NVMe SSD is the difference between waiting for things to load and just... not.`,
+  }
+  return map[bottleneck.component] || ''
+}
+
+function confidenceSentence(confidence) {
+  if (confidence === 'high') return `We're confident in this call.`
+  if (confidence === 'medium') {
+    return `We're fairly confident, though we couldn't identify every part — double-check the details before spending.`
+  }
+  return `Honestly, we couldn't identify enough of your parts to be sure — treat this as a starting point, not a verdict.`
+}
+
 function fallbackExplanation({ analysis, budget, userGoal }) {
   const goal = goalPhrase(userGoal)
-  const intro = bottleneckIntro(analysis?.likelyBottleneck, goal)
+  const bottleneck = analysis?.bottleneck
   const plan = recommendationSentence(budget, upgradeText(analysis?.recommendedFirstUpgrade))
   const price = priceNote(analysis?.pricingProvider)
 
-  return `${intro} ${plan} ${price}`
+  if (!bottleneck) {
+    const intro = `We couldn't identify your parts well enough to measure them against our rankings, so take this as a sensible starting point for ${goal} rather than a verdict.`
+    return `${intro} ${plan} ${price}`
+  }
+
+  const sentences = [
+    scoreStackSentence(bottleneck),
+    verdictSentence(bottleneck, goal),
+    confidenceSentence(bottleneck.confidence),
+  ]
+
+  if (bottleneck.closeCall) {
+    sentences.push(
+      `It was nearly a tie with your ${bottleneck.closeCallLabel.toLowerCase()}, so keep that one on your radar too.`,
+    )
+  }
+
+  sentences.push(plan, price)
+
+  return sentences.filter(Boolean).join(' ')
 }
 
 export async function createExplanation({ build = {}, analysis = {}, pricing = [], userGoal = '', budget = 0 }) {

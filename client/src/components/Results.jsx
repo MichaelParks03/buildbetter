@@ -66,10 +66,43 @@ function Results({ analysis }) {
           </p>
         </ResultCard>
 
-        <ResultCard title="Likely Bottleneck">
+        <ResultCard
+          title="Likely Bottleneck"
+          badge={
+            analysis.bottleneck
+              ? `Confidence: ${analysis.bottleneck.confidence.charAt(0).toUpperCase()}${analysis.bottleneck.confidence.slice(1)}`
+              : undefined
+          }
+        >
           <p className="text-2xl font-bold text-cyan-300">
             {analysis.likelyBottleneck}
           </p>
+          {analysis.bottleneck?.scores && (
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              {[
+                ['CPU', 'cpu'],
+                ['GPU', 'gpu'],
+                ['RAM', 'ram'],
+                ['Storage', 'storage'],
+              ].map(([label, key]) => {
+                const score = analysis.bottleneck.scores[key]
+                const isBottleneck = key === analysis.bottleneck.component
+                return (
+                  <div
+                    key={key}
+                    className={`rounded-lg border px-3 py-2 ${
+                      isBottleneck
+                        ? 'border-cyan-500 bg-cyan-950/40 text-cyan-200'
+                        : 'border-slate-800 bg-slate-950 text-slate-300'
+                    }`}
+                  >
+                    <span className="font-medium">{label}</span>{' '}
+                    <span className="float-right">{score === null ? '—' : `${score}/100`}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </ResultCard>
       </div>
 
