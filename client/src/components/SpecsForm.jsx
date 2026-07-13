@@ -31,7 +31,7 @@ function SpecsForm({ formData, isAnalyzing, onChange, onSubmit }) {
             name="powerSupply"
             value={formData.powerSupply}
             onChange={onChange}
-            placeholder="Example: 650W — fine to leave blank"
+            placeholder="Example: 650W, fine to leave blank"
             className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-600 focus:border-cyan-400"
           />
         </label>

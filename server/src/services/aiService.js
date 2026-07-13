@@ -37,17 +37,17 @@ function recommendationSentence(budget, upgrade) {
   if (budget >= 400) {
     return `So here's the plan: put most of your $${budget} toward ${upgrade} instead of spreading it thin across a bunch of smaller parts.`
   }
-  return `So here's the plan: with $${budget} to work with, ${upgrade} is the one thing worth spending on right now — everything else can wait.`
+  return `So here's the plan: with $${budget} to work with, ${upgrade} is the one thing worth spending on right now. Everything else can wait.`
 }
 
 function priceNote(pricingProvider) {
   if (pricingProvider === 'mock') {
-    return `One more thing — the prices you're seeing right now are demo numbers, not live prices, so check a real store before you buy.`
+    return `One more thing: the prices you're seeing right now are demo numbers, not live prices, so check a real store before you buy.`
   }
   if (pricingProvider === 'curated') {
-    return `One more thing — the prices shown are typical store prices we keep updated by hand, so use the store links to check today's exact price before you buy.`
+    return `One more thing: the prices shown are typical store prices we keep updated by hand, so use the store links to check today's exact price before you buy.`
   }
-  return `One more thing — prices change fast at real stores, so it's worth a quick double-check before you actually buy.`
+  return `One more thing: prices change fast at real stores, so it's worth a quick double-check before you actually buy.`
 }
 
 function partClause(info) {
@@ -73,10 +73,10 @@ function verdictSentence(bottleneck, goal) {
     return `The good news: your parts are already well matched for ${goal}, so nothing is badly holding you back. Your ${bottleneck.shortLabel} has the most room to grow, so that's where any spare money goes furthest.`
   }
   const map = {
-    gpu: `For ${goal}, the graphics card does most of the heavy lifting — and right now it's the weakest link in your build, so that's where an upgrade will feel the most noticeable.`,
-    cpu: `For ${goal}, the processor sets the pace — and yours is the part falling furthest behind, so it's the smartest place to spend.`,
-    ram: `${bottleneck.ramGb ? `${bottleneck.ramGb}GB of` : 'Your'} memory is what's pinching you here — RAM is cheap compared to most upgrades and smooths out ${goal} more than people expect.`,
-    storage: `Your ${bottleneck.storageKind || 'storage'} is the drag here — moving to a fast NVMe SSD is the difference between waiting for things to load and just... not.`,
+    gpu: `For ${goal}, the graphics card does most of the heavy lifting, and right now it's the weakest link in your build, so that's where an upgrade will feel the most noticeable.`,
+    cpu: `For ${goal}, the processor sets the pace, and yours is the part falling furthest behind, so it's the smartest place to spend.`,
+    ram: `${bottleneck.ramGb ? `${bottleneck.ramGb}GB of` : 'Your'} memory is what's pinching you here. RAM is cheap compared to most upgrades and smooths out ${goal} more than people expect.`,
+    storage: `Your ${bottleneck.storageKind || 'storage'} is the drag here. Moving to a fast NVMe SSD is the difference between waiting for things to load and just... not.`,
   }
   return map[bottleneck.component] || ''
 }
@@ -84,9 +84,9 @@ function verdictSentence(bottleneck, goal) {
 function confidenceSentence(confidence) {
   if (confidence === 'high') return `We're confident in this call.`
   if (confidence === 'medium') {
-    return `We're fairly confident, though we couldn't identify every part — double-check the details before spending.`
+    return `We're fairly confident, though we couldn't identify every part, so double-check the details before spending.`
   }
-  return `Honestly, we couldn't identify enough of your parts to be sure — treat this as a starting point, not a verdict.`
+  return `Honestly, we couldn't identify enough of your parts to be sure, so treat this as a starting point, not a verdict.`
 }
 
 function planSentence({ analysis, budget }) {
@@ -103,13 +103,13 @@ function planSentence({ analysis, budget }) {
       : `So here's the plan: you're already near the top. Everything you have matches or beats the best parts we track, so put spare money toward a future full rebuild instead.`
   }
   if (budgetPlan.status === 'no_budget') {
-    return `So here's the plan: ${upgrade} would make the biggest difference here — and since you didn't give a budget, we ranked the picks below purely by value for money.`
+    return `So here's the plan: ${upgrade} would make the biggest difference here, and since you didn't give a budget, we ranked the picks below purely by value for money.`
   }
   if (budgetPlan.status === 'too_small' && topPick) {
-    return `So here's the honest answer: $${budget} won't buy an upgrade you'd actually feel. The cheapest one worth doing is the ${topPick.title} at about $${topPick.price} — saving up for it beats spending today.`
+    return `So here's the honest answer: $${budget} won't buy an upgrade you'd actually feel. The cheapest one worth doing is the ${topPick.title} at about $${topPick.price}. Saving up for it beats spending today.`
   }
   if (budgetPlan.status === 'ok' && !budgetPlan.fixesBottleneck && topPick && analysis?.bottleneck) {
-    return `So here's the plan: the real fix is your ${analysis.bottleneck.shortLabel}, but that doesn't fit $${budget} yet — in the meantime, the ${topPick.title} (about $${topPick.price}) is the best value move you can make.`
+    return `So here's the plan: the real fix is your ${analysis.bottleneck.shortLabel}, but that doesn't fit $${budget} yet. In the meantime, the ${topPick.title} (about $${topPick.price}) is the best value move you can make.`
   }
   return recommendationSentence(budget, upgrade)
 }

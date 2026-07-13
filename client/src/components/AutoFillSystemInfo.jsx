@@ -67,7 +67,7 @@ function AutoFillSystemInfo({
       </div>
       <p className="mt-2 text-sm leading-6 text-slate-400">
         Open <span className="text-slate-200">Settings → System → About</span>,
-        copy your Device specifications, and paste them below — BuildBetter fills
+        copy your Device specifications, and paste them below. BuildBetter fills
         in the parts it recognizes. Click the ⓘ for exact steps.
       </p>
       <textarea

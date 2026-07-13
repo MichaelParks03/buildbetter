@@ -86,7 +86,7 @@ export function assessBuild(build, useCase) {
   let cpuInfo = null
   if (cpu.matched) {
     cpuInfo = { name: cpu.name, score: cpu.score, estimated: false }
-    reasons.push(`We recognized your processor as the ${cpu.name} — it scores ${cpu.score}/100 in our rankings.`)
+    reasons.push(`We recognized your processor as the ${cpu.name}. It scores ${cpu.score}/100 in our rankings.`)
   } else if (build.cpu.trim()) {
     const score = estimateCpuScore(build.cpu)
     cpuInfo = { name: build.cpu.trim(), score, estimated: true }
@@ -102,8 +102,8 @@ export function assessBuild(build, useCase) {
   if (gpu.matched) {
     gpuInfo = { name: gpu.name, score: gpu.score, estimated: false, integrated: gpu.integrated }
     const suffix = gpu.integrated
-      ? ' — that’s built-in graphics, not a separate card, so it scores low for heavier work.'
-      : ` — it scores ${gpu.score}/100 in our rankings.`
+      ? '. That is built-in graphics, not a separate card, so it scores low for heavier work.'
+      : `. It scores ${gpu.score}/100 in our rankings.`
     reasons.push(`We recognized your graphics as the ${gpu.name}${suffix}`)
   } else if (build.gpu.trim()) {
     const score = estimateGpuScore(build.gpu)
@@ -180,7 +180,7 @@ export function assessBuild(build, useCase) {
     if (cpuEntry) {
       top = cpuEntry
       reasons.push(
-        'Your processor is so far behind your graphics card that it would hold a new card back — so the processor comes first.',
+        'Your processor is so far behind your graphics card that it would hold a new card back, so the processor comes first.',
       )
     }
   }
@@ -241,7 +241,7 @@ function legacyFocus(useCase) {
 }
 
 function getUpgradePath(budget, focus, bottleneck) {
-  const steps = [`Start with the ${focus.upgrade.toLowerCase()} — that’s the part holding you back.`]
+  const steps = [`Start with the ${focus.upgrade.toLowerCase()}, the part holding you back.`]
 
   if (focus.category === 'cpu') {
     steps.push('A new processor may need a matching motherboard. Check that the socket matches before buying.')
@@ -253,11 +253,11 @@ function getUpgradePath(budget, focus, bottleneck) {
     steps.push('Match the RAM type (DDR4 or DDR5) to what your motherboard supports.')
   }
   if (focus.category === 'ssd') {
-    steps.push('Most PCs from the last 8 years have an NVMe slot on the motherboard — check yours before buying.')
+    steps.push('Most PCs from the last 8 years have an NVMe slot on the motherboard, so check yours before buying.')
   }
 
   if (bottleneck?.closeCall) {
-    steps.push(`Your ${bottleneck.closeCallLabel.toLowerCase()} was a close second — plan for it next.`)
+    steps.push(`Your ${bottleneck.closeCallLabel.toLowerCase()} was a close second, so plan for it next.`)
   } else if (budget >= 1000) {
     steps.push('With budget left over, look at RAM, storage, cooling, or a monitor upgrade next.')
   } else {

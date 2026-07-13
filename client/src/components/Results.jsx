@@ -97,7 +97,7 @@ function Results({ analysis }) {
                     }`}
                   >
                     <span className="font-medium">{label}</span>{' '}
-                    <span className="float-right">{score === null ? '—' : `${score}/100`}</span>
+                    <span className="float-right">{score === null ? 'not entered' : `${score}/100`}</span>
                   </div>
                 )
               })}

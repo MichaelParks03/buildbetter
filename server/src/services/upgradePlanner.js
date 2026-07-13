@@ -144,7 +144,7 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
       budget,
       picks: cheapest ? [toPick(cheapest, 'Cheapest upgrade that’s actually worth it')] : [],
       message: cheapest
-        ? `Honestly, $${budget} isn’t enough for an upgrade you’d actually notice. The cheapest one worth doing is the ${cheapest.part.title} at about $${cheapest.part.price} — saving up for it beats spending today.`
+        ? `Honestly, $${budget} isn’t enough for an upgrade you’d actually notice. The cheapest one worth doing is the ${cheapest.part.title} at about $${cheapest.part.price}. Saving up for it beats spending today.`
         : `Honestly, $${budget} isn’t enough for an upgrade you’d notice on this build.`,
     }
   }
