@@ -23,9 +23,41 @@ function getFirstValue(systemInfoText, labels) {
   return ''
 }
 
+// Windows System Information has no line starting with "Storage"; drives live
+// under Components > Storage > Disks as "Model" lines. Look for anything that
+// reads like a drive model or type anywhere in the paste.
+function findStorageLine(systemInfoText) {
+  const lines = String(systemInfoText).split(/\r?\n/)
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    // Skip lines that mention other components.
+    if (/baseboard|processor|display|adapter|graphics|bios|memory \(ram\)/i.test(trimmed)) continue
+
+    const value = trimmed.includes('\t')
+      ? trimmed.split('\t').slice(1).join(' ').trim()
+      : trimmed
+
+    if (/nvme|\bssd\b|solid state/i.test(value)) return value
+    if (/\b(wdc wd|st\d{6,}|hgst|seagate|western digital|hitachi hd|toshiba (dt|mq|hd))/i.test(value)) {
+      return value
+    }
+  }
+
+  return ''
+}
+
 export function parseSystemInfo(systemInfoText) {
   const warnings = []
-  const text = String(systemInfoText || '')
+  let text = String(systemInfoText || '')
+
+  // Guard against enormous pastes; real system info exports are far smaller.
+  const PASTE_CAP = 20000
+  if (text.length > PASTE_CAP) {
+    text = text.slice(0, PASTE_CAP)
+    warnings.push('The pasted text was very long, so only the first part was read.')
+  }
 
   if (!text.trim()) {
     warnings.push('No system information text was provided.')
@@ -37,7 +69,7 @@ export function parseSystemInfo(systemInfoText) {
     'Installed RAM',
     'Total Physical Memory',
   ])
-  const storage = getValue(text, 'Storage')
+  const storage = getValue(text, 'Storage') || findStorageLine(text)
   const os = getFirstValue(text, ['OS Name', 'Edition'])
   const boardManufacturer = getValue(text, 'BaseBoard Manufacturer')
   const boardProduct = getValue(text, 'BaseBoard Product')

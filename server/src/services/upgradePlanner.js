@@ -34,21 +34,6 @@ function targetScore(part) {
 }
 
 const CATEGORY_TO_COMPONENT = { gpu: 'gpu', cpu: 'cpu', ram: 'ram', ssd: 'storage' }
-const COMPONENT_TO_CATEGORY = { gpu: 'gpu', cpu: 'cpu', ram: 'ram', storage: 'ssd' }
-
-// The single highest-scoring catalog part in a category — used to give a
-// concrete "best-in-class" recommendation even when the user's build already
-// beats everything we sell.
-function bestPartInCategory(category) {
-  let best = null
-  for (const part of curatedParts) {
-    if (part.category !== category) continue
-    const score = targetScore(part)
-    if (score === null) continue
-    if (!best || score > best.score) best = { part, score }
-  }
-  return best ? best.part : null
-}
 
 function ddrTypeForPlatform(platform) {
   if (platform === 'am5' || platform === 'lga1851') return 'ddr5'
@@ -65,7 +50,9 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
   const cpuPlatform = bottleneck.cpuMatch?.platform || ''
   const ddrType = ddrTypeForPlatform(cpuPlatform)
 
-  const candidates = []
+  // Everything that is a genuine improvement over what the user has, however
+  // small. A part is never a candidate unless it beats the current score.
+  const improvements = []
 
   for (const part of curatedParts) {
     const component = CATEGORY_TO_COMPONENT[part.category]
@@ -88,16 +75,16 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
     // RAM type must match what the platform supports.
     if (part.category === 'ram' && ddrType && !part.matchName.includes(ddrType)) continue
 
-    const weightedGain = rawGain * weights[component]
-    if (weightedGain < MIN_WEIGHTED_GAIN) continue
-
-    candidates.push({
+    improvements.push({
       part,
       component,
-      weightedGain,
-      valuePerDollar: weightedGain / part.price,
+      weightedGain: rawGain * weights[component],
+      valuePerDollar: (rawGain * weights[component]) / part.price,
     })
   }
+
+  // Only meaningful improvements become normal recommendations.
+  const candidates = improvements.filter((entry) => entry.weightedGain >= MIN_WEIGHTED_GAIN)
 
   const byValue = [...candidates].sort((a, b) => b.valuePerDollar - a.valuePerDollar)
   const cheapest = [...candidates].sort((a, b) => a.part.price - b.part.price)[0] || null
@@ -112,28 +99,28 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
   }
 
   if (candidates.length === 0) {
-    // The build already beats everything in our catalog. Still give a concrete
-    // recommendation: the best-in-class part in the weakest category.
-    const category = COMPONENT_TO_CATEGORY[bottleneck.component]
-    const best = bestPartInCategory(category)
+    // No meaningful upgrade exists. If any part is even a small genuine step
+    // up, offer the biggest one; never suggest something worse than what the
+    // user already owns.
+    const bestSmallStep = [...improvements].sort((a, b) => b.weightedGain - a.weightedGain)[0] || null
     return {
       status: 'top_tier',
       budget,
-      topPickComponent: bottleneck.component,
+      topPickComponent: bestSmallStep ? bestSmallStep.component : bottleneck.component,
       fixesBottleneck: true,
-      picks: best
+      picks: bestSmallStep
         ? [
             {
-              ...toCuratedResult(best),
-              component: bottleneck.component,
-              weightedGain: 0,
-              note: 'Best-in-class in this category',
+              ...toCuratedResult(bestSmallStep.part),
+              component: bestSmallStep.component,
+              weightedGain: Math.round(bestSmallStep.weightedGain * 10) / 10,
+              note: 'Only a small step up, not urgent',
             },
           ]
         : [],
-      message: best
-        ? `Your build is already strong — nothing here is a clear step up. If you ever want the best ${bottleneck.shortLabel} we track, it’s the ${best.title}.`
-        : `Your build is already strong — nothing in our catalog is a clear step up right now.`,
+      message: bestSmallStep
+        ? `Your build is already strong. The closest thing to an upgrade in our catalog is the ${bestSmallStep.part.title}, and even that is a small step, not a must-have.`
+        : `Your build is already strong. Everything you have matches or beats the best parts we track, so save your money for a future full upgrade.`,
     }
   }
 

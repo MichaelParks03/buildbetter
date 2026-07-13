@@ -99,8 +99,8 @@ function planSentence({ analysis, budget }) {
 
   if (budgetPlan.status === 'top_tier') {
     return topPick
-      ? `So here's the plan: you're already near the top, so there's no urgent upgrade — but if you want the best ${analysis.bottleneck.shortLabel} we track, it's the ${topPick.title}.`
-      : `So here's the plan: you're already near the top — put any spare money toward a future full rebuild rather than a small step now.`
+      ? `So here's the plan: you're already near the top, so nothing is urgent. The closest thing to an upgrade in our catalog is the ${topPick.title}, and even that is a small step.`
+      : `So here's the plan: you're already near the top. Everything you have matches or beats the best parts we track, so put spare money toward a future full rebuild instead.`
   }
   if (budgetPlan.status === 'no_budget') {
     return `So here's the plan: ${upgrade} would make the biggest difference here — and since you didn't give a budget, we ranked the picks below purely by value for money.`

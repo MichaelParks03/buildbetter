@@ -55,8 +55,11 @@ function AutoFillSystemInfo({
                 ))}
               </span>
               <span className="mt-2 block text-slate-400">
-                Tip: the About page shows your Processor and RAM. Add your
-                graphics card in the form below for the most accurate result.
+                The About page covers your processor and RAM. For your graphics
+                card and storage too: press the Windows key, type "System
+                Information", press Enter, then copy System Summary plus the
+                Components sections for Display and Storage, and paste it all
+                here together.
               </span>
             </span>
           )}

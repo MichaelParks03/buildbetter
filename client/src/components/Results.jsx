@@ -106,7 +106,18 @@ function Results({ analysis }) {
         </ResultCard>
       </div>
 
-      <ResultCard title="Recommended First Upgrade">
+      <ResultCard
+        title={
+          analysis.budgetPlan?.status === 'ok' && analysis.budgetPlan.fixesBottleneck === false
+            ? 'Best Move For Your Budget'
+            : 'Recommended First Upgrade'
+        }
+      >
+        {analysis.budgetPlan?.status === 'ok' && analysis.budgetPlan.fixesBottleneck === false && (
+          <p className="mb-3 text-sm text-slate-400">
+            A {analysis.bottleneck?.shortLabel || 'bottleneck'} fix does not fit this budget yet.
+          </p>
+        )}
         <RecommendationCard
           part={analysis.recommendedFirstUpgrade}
           path={analysis.upgradePath}

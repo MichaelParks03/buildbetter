@@ -267,29 +267,110 @@ function getUpgradePath(budget, focus, bottleneck) {
   return steps
 }
 
-function estimateUsedValue(build) {
-  const knownParts = [build.cpu, build.gpu, build.ram, build.storage, build.motherboard].filter(Boolean).length
+// Rough used-market dollar value per component, keyed off the same 0-100
+// performance scores the analysis computes. Brackets are [scoreBelow, value].
+const GPU_VALUE_BRACKETS = [
+  [15, 30], [25, 60], [35, 100], [45, 150], [55, 220],
+  [65, 320], [75, 450], [85, 650], [95, 900], [Infinity, 1400],
+]
+const CPU_VALUE_BRACKETS = [
+  [25, 30], [35, 60], [45, 90], [55, 130], [65, 180],
+  [75, 260], [85, 350], [95, 450], [Infinity, 550],
+]
 
-  if (knownParts >= 5) return '$550 - $900'
-  if (knownParts >= 3) return '$350 - $650'
-  if (knownParts >= 1) return '$150 - $400'
-  return 'Add more parts for an estimate'
+function bracketValue(score, brackets) {
+  for (const [below, value] of brackets) {
+    if (score < below) return value
+  }
+  return brackets[brackets.length - 1][1]
 }
+
+function ramUsedValue(gb) {
+  if (!gb || gb <= 0) return 0
+  if (gb < 8) return 10
+  if (gb < 16) return 20
+  if (gb < 24) return 35
+  if (gb < 32) return 45
+  if (gb < 48) return 60
+  return 90
+}
+
+function storageUsedValue(kind) {
+  if (kind.includes('NVMe')) return 60
+  if (kind.includes('SSD')) return 40
+  if (kind.includes('hard drive')) return 15
+  return 0
+}
+
+function roundTo25(value) {
+  return Math.round(value / 25) * 25
+}
+
+// Sums per-component used values from the computed scores, then shows a
+// range. Still a rough estimate, but a flagship build and a budget build now
+// get very different numbers.
+function estimateUsedValue(build, bottleneck) {
+  if (!bottleneck) {
+    return 'Add more parts for an estimate'
+  }
+
+  const scores = bottleneck.scores
+  let total = 0
+
+  if (build.cpu && scores.cpu !== null) {
+    total += bracketValue(scores.cpu, CPU_VALUE_BRACKETS)
+  }
+  // Integrated graphics have no resale value separate from the CPU.
+  if (build.gpu && scores.gpu !== null && !bottleneck.gpuInfo?.integrated) {
+    total += bracketValue(scores.gpu, GPU_VALUE_BRACKETS)
+  }
+  total += ramUsedValue(bottleneck.ramGb)
+  total += storageUsedValue(bottleneck.storageKind || '')
+  if (build.motherboard) total += 60
+  if (build.powerSupply && build.powerSupply.toLowerCase() !== 'not sure') total += 40
+
+  if (total <= 0) {
+    return 'Add more parts for an estimate'
+  }
+
+  const low = Math.max(25, roundTo25(total * 0.8))
+  const high = roundTo25(total * 1.2)
+  return `$${low} - $${high}`
+}
+
+// No real part name needs more than this; longer input is a paste mistake or
+// someone probing the API.
+const FIELD_CAP = 120
 
 export async function analyzeBuild(rawBuild) {
   const warnings = []
+  let truncated = false
+
+  function capField(value) {
+    const text = String(value || '')
+    if (text.length > FIELD_CAP) {
+      truncated = true
+      return text.slice(0, FIELD_CAP)
+    }
+    return text
+  }
+
   const parsedBudget = parseBudget(rawBuild.budget)
   const budget = Math.max(0, parsedBudget)
   const useCase = useCases.includes(rawBuild.useCase) ? rawBuild.useCase : 'General Use'
   const build = {
-    cpu: rawBuild.cpu || '',
-    gpu: rawBuild.gpu || '',
-    ram: rawBuild.ram || '',
-    storage: rawBuild.storage || '',
-    motherboard: rawBuild.motherboard || '',
-    powerSupply: rawBuild.powerSupply || rawBuild.psu || '',
+    cpu: capField(rawBuild.cpu),
+    gpu: capField(rawBuild.gpu),
+    ram: capField(rawBuild.ram),
+    storage: capField(rawBuild.storage),
+    motherboard: capField(rawBuild.motherboard),
+    powerSupply: capField(rawBuild.powerSupply || rawBuild.psu),
     budget,
     useCase,
+  }
+
+  if (truncated) {
+    warnings.push('Some entries were unusually long, so they were shortened before the analysis.')
   }
 
   if (!build.cpu && !build.gpu) {
@@ -318,25 +399,24 @@ export async function analyzeBuild(rawBuild) {
       ? UPGRADE_BY_COMPONENT[budgetPlan.topPickComponent]
       : bottleneckFocus
 
-  // The planner always returns at least one pick now, so use it whenever we
-  // have a scored bottleneck. Only fall back to a raw catalog search when we
-  // couldn't score anything at all.
-  const pricing =
-    budgetPlan && budgetPlan.picks.length > 0
-      ? { provider: 'curated', results: budgetPlan.picks, warnings: [] }
-      : await searchPricing({
-          query: focus.query,
-          category: focus.category,
-          condition: 'any',
-          limit: 4,
-        })
+  // When the planner ran, its picks are final, even an empty list (a build
+  // that beats everything in the catalog gets no parts pushed at it). Only
+  // fall back to a raw catalog search when nothing could be scored at all.
+  const pricing = budgetPlan
+    ? { provider: 'curated', results: budgetPlan.picks, warnings: [] }
+    : await searchPricing({
+        query: focus.query,
+        category: focus.category,
+        condition: 'any',
+        limit: 4,
+      })
 
   const analysis = {
     currentBuildSummary: build,
     estimatedUsedValue: {
-      range: estimateUsedValue(build),
+      range: estimateUsedValue(build, bottleneck),
       confidence: 'demo estimate',
-      disclaimer: 'This is a rough demo estimate, not guaranteed live market pricing.',
+      disclaimer: 'This is a rough estimate based on your parts, not guaranteed live market pricing.',
     },
     likelyBottleneck: bottleneck ? bottleneck.label : COMPONENT_LABELS[legacyFocus(useCase).category === 'ssd' ? 'storage' : legacyFocus(useCase).category],
     bottleneck,
