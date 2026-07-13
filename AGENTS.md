@@ -1,5 +1,29 @@
 # BuildBetter Agent Instructions
 
+> ## Status update (July 2026): read this first
+>
+> The file below describes the original build plan. Several parts are now
+> out of date. The current state of the project is:
+>
+> - **OpenAI was removed entirely.** Explanations are written by a built-in
+>   rule-based writer in `server/src/services/aiService.js`. Do not add an AI
+>   explanation path or `OPENAI_*` variables.
+> - **Default pricing is the curated catalog** (`server/src/data/curatedParts.js`),
+>   hand-updated typical prices plus live Amazon/Newegg/eBay search links.
+>   Mock pricing still exists but only via `PRICING_PROVIDER=mock`.
+> - **Deployment is one Netlify site**: static frontend plus Netlify Functions
+>   at `/api/*` (see `netlify.toml` and `DEPLOY.md`). The Express server in
+>   `server/src/index.js` is optional local-only scaffolding, not the deploy path.
+> - **Bottleneck analysis is benchmark-based** (`server/src/data/performanceTiers.js`,
+>   `server/src/services/hardwareMatcher.js`) with heuristic estimates for
+>   unknown parts, and recommendations are budget-aware
+>   (`server/src/services/upgradePlanner.js`).
+> - The case/system model field was removed end to end.
+> - Writing standard: no em dashes in user-facing copy.
+>
+> Where this note and the README conflict with the phases below, this note
+> and the README win.
+
 ## Project Name
 
 BuildBetter

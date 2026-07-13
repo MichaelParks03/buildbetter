@@ -1,150 +1,78 @@
 # BuildBetter
 
-BuildBetter is a full-stack PC upgrade recommendation MVP. Users enter or paste PC specs, choose a budget and use case, then get a backend-powered upgrade recommendation with demo pricing and an explanation.
+BuildBetter is a PC upgrade recommendation site. Users enter or paste their PC specs, choose a budget and use case, and get a measured bottleneck analysis, a budget-aware upgrade plan, and typical prices with live store links for every recommended part.
 
-## What the MVP Does
+Live architecture: one Netlify site. The React frontend deploys as a static site and the backend runs as Netlify Functions at `/api/*`. See [DEPLOY.md](DEPLOY.md) for setup.
 
-- React/Vite/Tailwind frontend for entering PC parts.
-- Paste-based Windows System Information parser.
-- Node/Express backend with `/api` routes.
-- Rule-based PC analysis for bottlenecks, value estimates, upgrade paths, and warnings.
-- Mock pricing fallback that works without real API keys.
-- Best Buy and eBay pricing provider scaffolding for later live pricing.
-- Backend-only OpenAI explanation support with rule-based fallback.
+## How It Works
 
-BuildBetter does not automatically scan a user's computer from the browser. The current MVP uses a paste-based Windows System Information parser. A future desktop helper app would be needed for true automatic local hardware detection.
+- **Bottleneck analysis**: every CPU and GPU is scored 0 to 100 against a bundled benchmark tier dataset (about 135 parts). Parts not in the dataset get a heuristic estimate from their name. RAM and storage are scored from size and type. The component with the largest weighted shortfall for the chosen use case is the bottleneck, with a confidence level based on how much could be identified.
+- **Budget-aware recommendations**: an upgrade planner ranks catalog parts by performance gained per dollar, keeps only parts that fit the budget, respects CPU socket (AM4/AM5/LGA1700) and RAM type (DDR4/DDR5), and answers honestly when the budget is too small for a meaningful upgrade.
+- **Pricing**: the default provider is a curated, hand-updated parts catalog with typical street prices, each with live search links to Amazon, Newegg, and eBay. No scraping, no paid API. eBay and Best Buy providers are scaffolded and can be enabled with API keys once available.
+- **Explanations**: written by a built-in rule-based writer that cites the actual scores. There is no external AI service.
 
-## Install
+BuildBetter does not automatically scan a user's computer from the browser. Browsers cannot see exact hardware, so the paste-based parser (Settings > System > About, or Windows System Information) is the supported flow.
 
-Install backend dependencies:
+## Repo Layout
 
-```bash
-cd server
-npm install
-```
+- `client/` React + Vite + Tailwind frontend
+- `netlify/functions/` the deployed backend (one function per API endpoint)
+- `server/src/services/` and `server/src/data/` the shared analysis, pricing, and parsing logic imported by the functions
+- `server/src/index.js` and `server/src/routes/` an optional Express wrapper for local-only use; it is not the deployed path
+- `netlify.toml` build, functions, and local dev configuration
 
-Install frontend dependencies:
+## Run Locally
 
-```bash
-cd ../client
-npm install
-```
+Requires Node 20.19+ (Node 22 recommended, matching the pinned deploy version).
 
-## Environment
-
-Create a backend environment file from the example:
+One-time setup:
 
 ```bash
-cd server
-cp .env.example .env
+npm install -g netlify-cli
+cd client && npm install
 ```
 
-The app works with empty API keys by using mock pricing and fallback explanations.
-
-Important variables:
-
-- `PORT=5000`
-- `CLIENT_ORIGIN=http://localhost:5173`
-- `PRICING_PROVIDER=mock`
-- `BESTBUY_API_KEY=` for future Best Buy pricing
-- `EBAY_CLIENT_ID=` and `EBAY_CLIENT_SECRET=` for future eBay used pricing
-- `OPENAI_API_KEY=` and `OPENAI_MODEL=` for backend-only AI explanations
-
-Do not put API keys in frontend code. Do not commit real API keys.
-
-## Run The Backend
+Then from the repo root:
 
 ```bash
-cd server
-npm run dev
+netlify dev
 ```
 
-The backend runs at:
+This starts the frontend and the functions together at `http://localhost:8888`, matching exactly how the deployed site behaves.
 
-```text
-http://localhost:5000
-```
-
-Health check:
-
-```text
-GET /api/health
-```
-
-## Run The Frontend
-
-In another terminal:
+## Tests
 
 ```bash
-cd client
-npm run dev -- --host 0.0.0.0
+npm test
 ```
 
-The frontend runs through Vite on port `5173`. Vite proxies `/api` requests to the backend on port `5000`.
-
-Root scripts are also available:
-
-```bash
-npm run dev:server
-npm run dev:client
-npm run build:client
-npm run start:server
-```
+Runs the unit tests (hardware matching, bottleneck analysis, budget planning) with the built-in Node test runner. No extra dependencies needed.
 
 ## API Routes
 
-- `GET /api/health` checks that the backend is running.
-- `POST /api/parse-system-info` parses pasted Windows System Information text.
-- `POST /api/analyze` analyzes a build and returns recommendations.
-- `POST /api/pricing/search` returns normalized pricing results.
-- `POST /api/ai/explain` returns an OpenAI explanation when configured or a fallback explanation.
+- `GET /api/health` service check
+- `POST /api/parse-system-info` parses pasted Windows system info text
+- `POST /api/analyze` scores a build and returns the bottleneck, budget plan, and explanation
+- `POST /api/pricing/search` returns normalized pricing results from the active provider
 
-## Manual Test Checklist
+## Environment Variables
 
-1. Start the backend with `cd server && npm run dev`.
-2. Start the frontend with `cd client && npm run dev -- --host 0.0.0.0`.
-3. Open the frontend preview.
-4. Fill in CPU or GPU, budget, and use case.
-5. Click `Analyze My PC`.
-6. Confirm current build, estimated value, bottleneck, pricing, warnings, and explanation appear.
-7. Confirm mock pricing warnings appear when no live API keys are configured.
-8. Paste Windows System Information text.
-9. Click `Auto-Fill My Specs`.
-10. Confirm recognized fields populate.
-11. Submit again and confirm updated backend results.
-12. Stop the backend and confirm the frontend shows a friendly API error.
+None are required. The site runs fully on the curated catalog with zero configuration.
 
-## Real vs Mock
+Optional, for live pricing later:
 
-Real in this MVP:
+- `PRICING_PROVIDER` set to `curated` (default), `ebay`, `bestbuy`, `combined`, or `mock`
+- `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_MARKETPLACE_ID` once the eBay developer account is approved
+- `BESTBUY_API_KEY` if a Best Buy key is ever granted
 
-- Frontend form and system-info paste flow.
-- Express backend routes.
-- Rule-based PC analysis.
-- Backend validation and warnings.
-- Backend-only OpenAI call path when a key is configured.
+Do not put API keys in frontend code. Do not commit real API keys.
 
-Mock or fallback in this MVP:
+## Updating Prices
 
-- Pricing defaults to mock data.
-- Used value estimates are rough demo estimates.
-- Best Buy and eBay providers are scaffolds until API credentials and provider details are enabled.
-- AI explanations fall back to rules when `OPENAI_API_KEY` is missing or the API call fails.
-
-## Live Pricing And AI Keys Needed Later
-
-- Best Buy new-part pricing: `BESTBUY_API_KEY`
-- eBay used-market pricing: `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_MARKETPLACE_ID`
-- OpenAI explanations: `OPENAI_API_KEY`, `OPENAI_MODEL`
-- Amazon Creators API is future optional scaffolding, not a blocker for this MVP.
-
-Amazon Product Advertising API is not the main provider because PA-API is being deprecated. BuildBetter should not scrape Amazon pages.
+Prices live in `server/src/data/curatedParts.js` with an as-of date. To update: edit the numbers, bump `pricesAsOf`, commit, and push. The store links always show live prices regardless.
 
 ## Future Features
 
-- Better real pricing and used-value estimates.
-- Stronger AI explanations.
-- Saved builds.
-- User accounts.
-- Downloadable Windows helper app for true local hardware detection.
-- Deployment to a public host.
+- Live eBay pricing once the developer account is approved
+- Saved builds and user accounts
+- Email or shareable results

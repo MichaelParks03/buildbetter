@@ -53,7 +53,7 @@ function App() {
       }))
     } catch {
       setError(
-        'BuildBetter could not reach the backend parser. Make sure the backend is running on port 5000.',
+        'BuildBetter could not read that text right now. Check your connection and try again in a moment.',
       )
     } finally {
       setIsParsing(false)
@@ -64,8 +64,9 @@ function App() {
     event.preventDefault()
     setError('')
 
-    const budgetNumber = Number(String(formData.budget).replace(/[^0-9.]/g, ''))
-    if (formData.budget && (!Number.isFinite(budgetNumber) || budgetNumber <= 0)) {
+    const rawBudget = String(formData.budget).trim()
+    const budgetNumber = Number(rawBudget.replace(/[^0-9.-]/g, ''))
+    if (rawBudget && (!Number.isFinite(budgetNumber) || budgetNumber <= 0)) {
       setError('Budget should be a positive number.')
       return
     }
@@ -85,7 +86,7 @@ function App() {
     } catch (requestError) {
       setError(
         requestError.message ||
-          'BuildBetter could not reach the backend. Make sure the backend is running on port 5000.',
+          'BuildBetter could not reach its analysis service. Check your connection and try again in a moment.',
       )
     } finally {
       setIsAnalyzing(false)

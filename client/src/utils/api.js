@@ -36,10 +36,3 @@ export function searchPricing(search) {
     body: JSON.stringify(search),
   })
 }
-
-export function explainRecommendation(payload) {
-  return request('/api/ai/explain', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
-}

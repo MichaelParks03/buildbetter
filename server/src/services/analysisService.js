@@ -29,8 +29,10 @@ const SHORT_LABELS = {
   storage: 'storage',
 }
 
+// Keeps the minus sign so "-100" reads as a negative number to be rejected,
+// not silently turned into a positive budget.
 function parseBudget(budget) {
-  const value = Number(String(budget || '').replace(/[^0-9.]/g, ''))
+  const value = Number(String(budget || '').replace(/[^0-9.-]/g, ''))
   return Number.isFinite(value) ? value : 0
 }
 
@@ -276,7 +278,8 @@ function estimateUsedValue(build) {
 
 export async function analyzeBuild(rawBuild) {
   const warnings = []
-  const budget = parseBudget(rawBuild.budget)
+  const parsedBudget = parseBudget(rawBuild.budget)
+  const budget = Math.max(0, parsedBudget)
   const useCase = useCases.includes(rawBuild.useCase) ? rawBuild.useCase : 'General Use'
   const build = {
     cpu: rawBuild.cpu || '',
@@ -296,7 +299,7 @@ export async function analyzeBuild(rawBuild) {
     }
   }
 
-  if (rawBuild.budget && budget <= 0) {
+  if (rawBuild.budget && parsedBudget <= 0) {
     warnings.push('Budget should be a positive number, so it was ignored for this analysis.')
   }
 
