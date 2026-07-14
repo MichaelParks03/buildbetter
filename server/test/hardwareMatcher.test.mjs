@@ -47,6 +47,22 @@ test('normalizeHardwareName strips marks, clocks, and vendor words', () => {
   assert.equal(normalizeHardwareName('NVIDIA GeForce RTX 3060'), 'rtx 3060')
 })
 
+test('bare model numbers match without the brand prefix', () => {
+  assert.equal(matchGpu('5070 ti').name, 'NVIDIA GeForce RTX 5070 Ti')
+  assert.equal(matchGpu('2070 super').score, 47)
+  assert.equal(matchGpu('1060').score, 22)
+  assert.equal(matchGpu('580').name, 'AMD Radeon RX 580')
+
+  const ryzen = matchCpu('5600x')
+  assert.equal(ryzen.name, 'AMD Ryzen 5 5600X')
+  assert.equal(ryzen.platform, 'am4')
+  assert.equal(matchCpu('12700k').name, 'Intel Core i7-12700K')
+  assert.equal(matchCpu('9700k').name, 'Intel Core i7-9700K')
+
+  // Different cards must produce different scores, never one flat guess.
+  assert.notEqual(matchGpu('2070 super').score, matchGpu('5070 ti').score)
+})
+
 test('bare series names rank by class: i9 > i7 > i5 > i3', () => {
   const i3 = estimateCpuScore('i3')
   const i5 = estimateCpuScore('i5')

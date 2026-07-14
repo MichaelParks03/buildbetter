@@ -38,7 +38,41 @@ function normalizeIntelSpacing(normalized) {
   return normalized.replace(/\bi([3579])[ -]?(\d{4,5})(k?f?s?)\b/g, 'i$1-$2$3')
 }
 
-function matchAgainst(rawName, tiers) {
+// People often type just the model number: "5070 ti", "1060", "580". Expand
+// those into brand-prefixed candidates and let the tier dataset decide which
+// one actually exists (only one of rtx/gtx/rx 5070 ti is a real card).
+function gpuCandidates(normalized) {
+  const candidates = [normalized]
+  if (/^\d{3,4}\b/.test(normalized)) {
+    for (const prefix of ['rtx ', 'gtx ', 'rx ']) {
+      candidates.push(prefix + normalized)
+    }
+  }
+  return candidates
+}
+
+// Same for CPUs: "12700k" reads as Intel (class from the hundreds digit),
+// "5600x" reads as Ryzen. Push both interpretations for ambiguous bare
+// numbers; the tier dataset only contains the real one.
+function cpuCandidates(normalized) {
+  const candidates = [normalized]
+  const match = normalized.match(/^(\d{4,5})\s*(x3d|xt|x|ge|g|ks|kf|k|f)?\b/)
+  if (!match) return candidates
+
+  const model = match[1]
+  const suffix = match[2] || ''
+  const hundreds = Math.floor((Number(model) % 1000) / 100)
+
+  const intelClass = hundreds >= 9 ? 9 : hundreds >= 7 ? 7 : hundreds >= 4 ? 5 : 3
+  candidates.push(`i${intelClass}-${model}${suffix}`)
+
+  const ryzenClass = hundreds >= 9 ? 9 : hundreds >= 7 ? 7 : hundreds >= 4 ? 5 : 3
+  candidates.push(`ryzen ${ryzenClass} ${model}${suffix}`)
+
+  return candidates
+}
+
+function matchAgainst(rawName, tiers, expandCandidates) {
   const raw = String(rawName || '')
   if (!raw.trim()) return { matched: false, missing: true }
 
@@ -51,7 +85,11 @@ function matchAgainst(rawName, tiers) {
     normalized = normalized.replace(/radeon-igpu/g, 'radeon graphics')
   }
 
-  const entry = findTierEntry(normalized, tiers)
+  let entry = null
+  for (const candidate of expandCandidates(normalized)) {
+    entry = findTierEntry(candidate, tiers)
+    if (entry) break
+  }
   if (!entry) return { matched: false, missing: false, raw }
 
   const laptop = isLaptopVariant(normalized)
@@ -69,15 +107,11 @@ function matchAgainst(rawName, tiers) {
 }
 
 export function matchCpu(rawName) {
-  return matchAgainst(rawName, cpuTiers)
+  return matchAgainst(rawName, cpuTiers, cpuCandidates)
 }
 
 export function matchGpu(rawName) {
-  const result = matchAgainst(rawName, gpuTiers)
-
-  // A GPU string that mentions a dedicated-card brand but matched nothing is
-  // still worth distinguishing from "no GPU at all".
-  return result
+  return matchAgainst(rawName, gpuTiers, gpuCandidates)
 }
 
 function clampScore(value) {
@@ -90,11 +124,7 @@ function clampScore(value) {
 // still gets a reasonable number instead of a blank. These are ballpark only
 // and lower the analysis confidence.
 
-export function estimateGpuScore(rawName) {
-  const n = normalizeHardwareName(rawName)
-  const laptop = isLaptopVariant(n)
-  const laptopFactor = laptop ? 0.75 : 1
-
+function gpuPatternScore(n, laptopFactor) {
   // NVIDIA GeForce RTX / GTX, e.g. "rtx 4070 ti", "gtx 1660 super"
   let match = n.match(/\b(rtx|gtx)\s*(\d{3,4})\s*(ti|super)?/)
   if (match) {
@@ -138,15 +168,27 @@ export function estimateGpuScore(rawName) {
     return clampScore((base + adj) * laptopFactor)
   }
 
+  return null
+}
+
+export function estimateGpuScore(rawName) {
+  const n = normalizeHardwareName(rawName)
+  const laptop = isLaptopVariant(n)
+  const laptopFactor = laptop ? 0.75 : 1
+
+  // Try the name as typed, then brand-prefixed versions of bare model
+  // numbers ("5070 ti" -> "rtx 5070 ti"), so different cards never collapse
+  // to the same generic guess.
+  for (const candidate of gpuCandidates(n)) {
+    const score = gpuPatternScore(candidate, laptopFactor)
+    if (score !== null) return score
+  }
+
   // Unrecognized but clearly a real entry: neutral mid-low dedicated-card guess.
   return clampScore(35 * laptopFactor)
 }
 
-export function estimateCpuScore(rawName) {
-  const n = normalizeIntelSpacing(normalizeHardwareName(rawName))
-  const laptop = isLaptopVariant(n)
-  const laptopFactor = laptop ? 0.75 : 1
-
+function cpuPatternScore(n, laptopFactor) {
   // Intel Core i-series, e.g. "i5-13500", "i7-9700k"
   let match = n.match(/\bi([3579])-?(\d{4,5})/)
   if (match) {
@@ -167,13 +209,6 @@ export function estimateCpuScore(rawName) {
     return clampScore(72 + clsAdj)
   }
 
-  // Bare "Core Ultra 7" with no model number: assume a current midrange chip.
-  match = n.match(/\bultra\s*([3579])\b/)
-  if (match) {
-    const clsAdj = { 3: -12, 5: 0, 7: 14, 9: 24 }[Number(match[1])] ?? 0
-    return clampScore((70 + clsAdj) * laptopFactor)
-  }
-
   // AMD Ryzen, e.g. "ryzen 5 5600x", "ryzen 7 7800x3d", "ryzen 5 8600g"
   match = n.match(/\bryzen\s*([3579])\s*(\d{3,4})\s*(x3d|xt|x|ge|g)?/)
   if (match) {
@@ -185,6 +220,28 @@ export function estimateCpuScore(rawName) {
     const suffix = match[3] || ''
     const sufAdj = suffix === 'x3d' ? 6 : suffix === 'g' || suffix === 'ge' ? -6 : suffix === 'x' ? 2 : 0
     return clampScore((genBase + clsAdj + sufAdj) * laptopFactor)
+  }
+
+  return null
+}
+
+export function estimateCpuScore(rawName) {
+  const n = normalizeIntelSpacing(normalizeHardwareName(rawName))
+  const laptop = isLaptopVariant(n)
+  const laptopFactor = laptop ? 0.75 : 1
+
+  // Try the name as typed, then expanded versions of bare model numbers
+  // ("12700k" -> "i7-12700k", "5600x" -> "ryzen 5 5600x").
+  for (const candidate of cpuCandidates(n)) {
+    const score = cpuPatternScore(candidate, laptopFactor)
+    if (score !== null) return score
+  }
+
+  // Bare "Core Ultra 7" with no model number: assume a current midrange chip.
+  let match = n.match(/\bultra\s*([3579])\b/)
+  if (match) {
+    const clsAdj = { 3: -12, 5: 0, 7: 14, 9: 24 }[Number(match[1])] ?? 0
+    return clampScore((70 + clsAdj) * laptopFactor)
   }
 
   // Bare series names with no model number, like "i7", "i9", "Ryzen 5".
