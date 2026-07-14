@@ -167,6 +167,13 @@ export function estimateCpuScore(rawName) {
     return clampScore(72 + clsAdj)
   }
 
+  // Bare "Core Ultra 7" with no model number: assume a current midrange chip.
+  match = n.match(/\bultra\s*([3579])\b/)
+  if (match) {
+    const clsAdj = { 3: -12, 5: 0, 7: 14, 9: 24 }[Number(match[1])] ?? 0
+    return clampScore((70 + clsAdj) * laptopFactor)
+  }
+
   // AMD Ryzen, e.g. "ryzen 5 5600x", "ryzen 7 7800x3d", "ryzen 5 8600g"
   match = n.match(/\bryzen\s*([3579])\s*(\d{3,4})\s*(x3d|xt|x|ge|g)?/)
   if (match) {
@@ -178,6 +185,21 @@ export function estimateCpuScore(rawName) {
     const suffix = match[3] || ''
     const sufAdj = suffix === 'x3d' ? 6 : suffix === 'g' || suffix === 'ge' ? -6 : suffix === 'x' ? 2 : 0
     return clampScore((genBase + clsAdj + sufAdj) * laptopFactor)
+  }
+
+  // Bare series names with no model number, like "i7", "i9", "Ryzen 5".
+  // These cover many generations, so assume a mid-generation desktop chip
+  // of that class; the class alone still ranks them sensibly (i9 > i7 > i5).
+  match = n.match(/\bi([3579])\b/)
+  if (match) {
+    const base = { 3: 28, 5: 38, 7: 50, 9: 60 }[Number(match[1])]
+    return clampScore(base * laptopFactor)
+  }
+
+  match = n.match(/\bryzen\s*([3579])\b/)
+  if (match) {
+    const base = { 3: 30, 5: 42, 7: 52, 9: 62 }[Number(match[1])]
+    return clampScore(base * laptopFactor)
   }
 
   // Unrecognized but clearly a real entry: neutral mid guess.

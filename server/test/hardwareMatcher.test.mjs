@@ -47,6 +47,19 @@ test('normalizeHardwareName strips marks, clocks, and vendor words', () => {
   assert.equal(normalizeHardwareName('NVIDIA GeForce RTX 3060'), 'rtx 3060')
 })
 
+test('bare series names rank by class: i9 > i7 > i5 > i3', () => {
+  const i3 = estimateCpuScore('i3')
+  const i5 = estimateCpuScore('i5')
+  const i7 = estimateCpuScore('Intel Core i7')
+  const i9 = estimateCpuScore('i9')
+  assert.ok(i9 > i7 && i7 > i5 && i5 > i3, `got i3=${i3} i5=${i5} i7=${i7} i9=${i9}`)
+
+  const r5 = estimateCpuScore('Ryzen 5')
+  const r7 = estimateCpuScore('ryzen 7')
+  const r9 = estimateCpuScore('AMD Ryzen 9')
+  assert.ok(r9 > r7 && r7 > r5, `got r5=${r5} r7=${r7} r9=${r9}`)
+})
+
 test('estimators return plausible scores for parts not in the dataset', () => {
   const gpu = estimateGpuScore('RTX 4055')
   assert.ok(gpu >= 30 && gpu <= 60, `RTX 4055 estimated ${gpu}`)

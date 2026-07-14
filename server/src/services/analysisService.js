@@ -92,6 +92,11 @@ export function assessBuild(build, useCase) {
     cpuInfo = { name: build.cpu.trim(), score, estimated: true }
     softCount += 1
     reasons.push(`We didn't have "${build.cpu.trim()}" in our rankings, so we estimated it at about ${score}/100.`)
+    if (/^(intel\s+)?(core\s+)?i[3579]$/i.test(build.cpu.trim()) || /^(amd\s+)?ryzen\s+[3579]$/i.test(build.cpu.trim())) {
+      reasons.push(
+        'Tip: a series name alone covers many generations. Add the full model, like i7-12700K or Ryzen 7 5800X, for a more accurate score.',
+      )
+    }
   } else {
     reasons.push('No processor was listed, so it was left out of the comparison.')
   }
