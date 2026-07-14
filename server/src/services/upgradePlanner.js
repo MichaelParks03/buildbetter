@@ -49,6 +49,27 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
   const { scores, weights } = bottleneck
   const cpuPlatform = bottleneck.cpuMatch?.platform || ''
   const ddrType = ddrTypeForPlatform(cpuPlatform)
+  // The CPU is the bottleneck but we don't know the exact model, so no
+  // processor can be suggested (unknown socket, unknown true speed).
+  const cpuBottleneckButVague = bottleneck.component === 'cpu' && !cpuPlatform
+  const exactModelNote =
+    'We can’t suggest a specific processor without your exact model (like i9-12900K), since the socket has to match. '
+
+  // The CPU is the bottleneck, we know the socket, and nothing we track fits
+  // it and beats the current chip: the platform is a dead end.
+  const cpuDeadSocket =
+    bottleneck.component === 'cpu' &&
+    Boolean(cpuPlatform) &&
+    !curatedParts.some(
+      (part) =>
+        part.category === 'cpu' &&
+        part.platform === cpuPlatform &&
+        (targetScore(part) ?? 0) > (scores.cpu ?? 0),
+    )
+  const deadSocketNote =
+    'Your processor’s socket has no drop-in upgrade we track, so a real fix means a new motherboard and processor together. '
+
+  const cpuNote = cpuBottleneckButVague ? exactModelNote : cpuDeadSocket ? deadSocketNote : ''
 
   // Everything that is a genuine improvement over what the user has, however
   // small. A part is never a candidate unless it beats the current score.
@@ -69,8 +90,11 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
 
     // CPU upgrades must fit the motherboard we can infer. If we know the
     // platform and it doesn't match, the "upgrade" really means a new
-    // motherboard too — leave it out rather than surprise a beginner.
-    if (part.category === 'cpu' && cpuPlatform && part.platform !== cpuPlatform) continue
+    // motherboard too — leave it out rather than surprise a beginner. And if
+    // we couldn't identify the exact CPU model (someone typed just "i9"),
+    // never guess a processor: we can't verify the socket or that the new
+    // chip actually beats what they own.
+    if (part.category === 'cpu' && part.platform !== cpuPlatform) continue
 
     // RAM type must match what the platform supports.
     if (part.category === 'ram' && ddrType && !part.matchName.includes(ddrType)) continue
@@ -83,8 +107,17 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
     })
   }
 
-  // Only meaningful improvements become normal recommendations.
-  const candidates = improvements.filter((entry) => entry.weightedGain >= MIN_WEIGHTED_GAIN)
+  // Only meaningful improvements become normal recommendations, and only in
+  // categories that actually need help: the bottleneck itself, or a component
+  // we scored below 70. No padding the list with parts for healthy categories.
+  function needsHelp(component) {
+    if (component === bottleneck.component) return true
+    return scores[component] !== null && scores[component] < 70
+  }
+
+  const candidates = improvements.filter(
+    (entry) => entry.weightedGain >= MIN_WEIGHTED_GAIN && needsHelp(entry.component),
+  )
 
   const byValue = [...candidates].sort((a, b) => b.valuePerDollar - a.valuePerDollar)
   const cheapest = [...candidates].sort((a, b) => a.part.price - b.part.price)[0] || null
@@ -106,6 +139,8 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
     return {
       status: 'top_tier',
       budget,
+      cpuModelNeeded: cpuBottleneckButVague,
+      cpuNeedsNewBoard: cpuDeadSocket,
       topPickComponent: bestSmallStep ? bestSmallStep.component : bottleneck.component,
       fixesBottleneck: true,
       picks: bestSmallStep
@@ -118,9 +153,11 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
             },
           ]
         : [],
-      message: bestSmallStep
-        ? `Your build is already strong. The closest thing to an upgrade in our catalog is the ${bestSmallStep.part.title}, and even that is a small step, not a must-have.`
-        : `Your build is already strong. Everything you have matches or beats the best parts we track, so save your money for a future full upgrade.`,
+      message: cpuNote
+        ? `${cpuNote}Everything else you listed already looks strong.`
+        : bestSmallStep
+          ? `Your build is already strong. The closest thing to an upgrade in our catalog is the ${bestSmallStep.part.title}, and even that is a small step, not a must-have.`
+          : `Your build is already strong. Everything you have matches or beats the best parts we track, so save your money for a future full upgrade.`,
     }
   }
 
@@ -142,10 +179,12 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
     return {
       status: 'too_small',
       budget,
+      cpuModelNeeded: cpuBottleneckButVague,
+      cpuNeedsNewBoard: cpuDeadSocket,
       picks: cheapest ? [toPick(cheapest, 'Cheapest upgrade that’s actually worth it')] : [],
       message: cheapest
-        ? `Honestly, $${budget} isn’t enough for an upgrade you’d actually notice. The cheapest one worth doing is the ${cheapest.part.title} at about $${cheapest.part.price}. Saving up for it beats spending today.`
-        : `Honestly, $${budget} isn’t enough for an upgrade you’d notice on this build.`,
+        ? `${cpuNote}Honestly, $${budget} isn’t enough for an upgrade you’d actually notice. The cheapest one worth doing is the ${cheapest.part.title} at about $${cheapest.part.price}. Saving up for it beats spending today.`
+        : `${cpuNote}Honestly, $${budget} isn’t enough for an upgrade you’d notice on this build.`,
     }
   }
 
@@ -165,10 +204,14 @@ export function planUpgrades({ bottleneck, budget, useCase }) {
     status: 'ok',
     budget,
     picks,
+    cpuModelNeeded: cpuBottleneckButVague && !fixesBottleneck,
+    cpuNeedsNewBoard: cpuDeadSocket && !fixesBottleneck,
     topPickComponent: topPick.component,
     fixesBottleneck,
     message: fixesBottleneck
       ? `Every pick below fits your $${budget} budget. The ${bottleneck.shortLabel} picks fix your bottleneck; the rest are strong value too.`
-      : `A ${bottleneck.shortLabel} upgrade doesn’t fit $${budget} yet, so these picks are the best value moves you can make right now.`,
+      : cpuNote
+        ? `${cpuNote}In the meantime, these picks are worthwhile upgrades that fit your budget.`
+        : `A ${bottleneck.shortLabel} upgrade doesn’t fit $${budget} yet, so these picks are the best value moves you can make right now.`,
   }
 }

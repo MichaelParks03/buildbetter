@@ -97,6 +97,18 @@ function planSentence({ analysis, budget }) {
 
   const topPick = budgetPlan.picks?.[0]
 
+  if (budgetPlan.cpuModelNeeded) {
+    return topPick
+      ? `So here's the plan: tell us your exact processor model (like i9-12900K) and we can suggest a compatible replacement, since sockets have to match. In the meantime, the ${topPick.title} (about $${topPick.price}) is a worthwhile move.`
+      : `So here's the plan: tell us your exact processor model (like i9-12900K) and we can point you at a compatible replacement, since sockets have to match.`
+  }
+
+  if (budgetPlan.cpuNeedsNewBoard) {
+    return topPick
+      ? `So here's the honest answer: your processor's socket has no drop-in upgrade, so the real fix is a new motherboard and processor together. In the meantime, the ${topPick.title} (about $${topPick.price}) is a worthwhile move.`
+      : `So here's the honest answer: your processor's socket has no drop-in upgrade, so the real fix is a new motherboard and processor together. Save toward that instead of a small purchase now.`
+  }
+
   if (budgetPlan.status === 'top_tier') {
     return topPick
       ? `So here's the plan: you're already near the top, so nothing is urgent. The closest thing to an upgrade in our catalog is the ${topPick.title}, and even that is a small step.`

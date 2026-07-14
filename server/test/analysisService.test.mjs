@@ -77,3 +77,19 @@ test('requires at least a CPU or GPU', async () => {
   const result = await analyzeBuild({ ram: '16GB' })
   assert.ok(result.error)
 })
+
+test('storage input variations all parse to sensible scores', () => {
+  const base = { cpu: 'Ryzen 5 5600X', gpu: 'RTX 3060', ram: '16GB' }
+  const score = (storage) => assessBuild({ ...base, storage }, 'General Use').scores.storage
+
+  assert.equal(score('2 tb nvme'), 94)
+  assert.equal(score('m.2 1 TB'), 90)
+  assert.equal(score('500 GB SSD'), 72)
+  assert.equal(score('4tb HDD'), 19)
+  assert.ok(score('250GB hdd') < score('4tb HDD'), 'smaller HDD scores lower')
+  assert.equal(score('4TB'), 64) // size only: assumed SSD
+  assert.ok(score('1gb') < score('512gb'), 'tiny sizes score lower')
+
+  const tiny = assessBuild({ ...base, storage: '1gb' }, 'General Use')
+  assert.ok(tiny.reasons.some((reason) => reason.includes('unusually small')))
+})

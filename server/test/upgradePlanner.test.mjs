@@ -68,6 +68,46 @@ test('affordable picks that fix the bottleneck lead the list', () => {
   }
 })
 
+test('never recommends a CPU when the exact model is unknown', () => {
+  const plan = planFor(
+    { cpu: 'i9', gpu: 'RTX 3060', ram: '16GB', storage: '4tb HDD' },
+    'General Use',
+    400,
+  )
+  assert.ok(plan.picks.length > 0)
+  assert.ok(plan.picks.every((pick) => pick.component !== 'cpu'))
+})
+
+test('vague CPU bottleneck asks for the exact model instead of guessing', () => {
+  const plan = planFor(
+    { cpu: 'i9', gpu: 'RTX 4080', ram: '32GB DDR5', storage: '2TB NVMe' },
+    'CAD',
+    500,
+  )
+  assert.equal(plan.cpuModelNeeded, true)
+  assert.ok(plan.message.includes('exact model'))
+})
+
+test('dead-socket CPU bottleneck explains the motherboard reality', () => {
+  const plan = planFor(
+    { cpu: 'i9-9900K', gpu: 'RTX 4070', ram: '32GB', storage: '1TB NVMe' },
+    'CAD',
+    300,
+  )
+  assert.equal(plan.cpuNeedsNewBoard, true)
+  assert.ok(plan.message.includes('motherboard'))
+})
+
+test('healthy categories are not padded into the pick list', () => {
+  const plan = planFor(
+    { cpu: 'Ryzen 7 5800X3D', gpu: 'GTX 1060', ram: '32GB', storage: '1TB NVMe' },
+    'Gaming',
+    500,
+  )
+  assert.ok(plan.picks.length > 0)
+  assert.ok(plan.picks.every((pick) => pick.component === 'gpu'))
+})
+
 test('no budget returns value-ranked picks and says so', () => {
   const plan = planFor(
     { cpu: 'Ryzen 5 3600', gpu: 'RX 580', ram: '16GB', storage: '1TB SSD' },

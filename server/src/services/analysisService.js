@@ -52,24 +52,66 @@ function ramScore(gb) {
   return 95
 }
 
+// Reads any of the ways people write storage: "4TB", "1tb HDD", "500 GB SSD",
+// "2 tb nvme", "512gb", and so on. Type drives the score (speed is what the
+// user feels); size nudges it.
 function storageScore(storageText) {
   const value = String(storageText || '').toLowerCase()
-  if (!value.trim()) return { score: null, kind: '', estimated: false }
-  if (value.includes('nvme') || value.includes('m.2')) return { score: 90, kind: 'NVMe SSD', estimated: false }
-  if (value.includes('ssd') || value.includes('solid state')) return { score: 72, kind: 'SSD', estimated: false }
-  if (
+  if (!value.trim()) return { score: null, kind: '', estimated: false, tip: '' }
+
+  // Size in GB, from "4tb", "500 gb", "1.5 TB", "512gb"...
+  const sizeMatch = value.match(/(\d+(?:\.\d+)?)\s*(tb|gb|mb)\b/)
+  let sizeGb = null
+  let sizeLabel = ''
+  if (sizeMatch) {
+    const amount = Number(sizeMatch[1])
+    sizeGb = sizeMatch[2] === 'tb' ? amount * 1000 : sizeMatch[2] === 'gb' ? amount : amount / 1000
+    sizeLabel = `${sizeMatch[1]}${sizeMatch[2].toUpperCase()}`
+  }
+
+  let base
+  let typeLabel
+  let estimated = false
+  if (value.includes('nvme') || value.includes('m.2')) {
+    base = 90
+    typeLabel = 'NVMe SSD'
+  } else if (value.includes('ssd') || value.includes('solid state')) {
+    base = 72
+    typeLabel = 'SSD'
+  } else if (
     value.includes('hdd') ||
     value.includes('hard drive') ||
     value.includes('hard disk') ||
     value.includes('5400') ||
     value.includes('7200')
   ) {
-    return { score: 15, kind: 'hard drive (HDD)', estimated: false }
+    base = 15
+    typeLabel = 'hard drive (HDD)'
+  } else {
+    // Only a size (or something unreadable). Most PCs from the last several
+    // years use an SSD, so assume that rather than leaving the field blank.
+    base = 60
+    typeLabel = 'drive (assumed SSD)'
+    estimated = true
   }
-  // Something was entered (e.g. "512GB") but the type is unclear. Most PCs
-  // sold in the last several years use an SSD, so assume that rather than
-  // leaving the field blank.
-  return { score: 60, kind: 'drive (assumed SSD)', estimated: true }
+
+  // Capacity nudges the score; it never rescues a slow drive type.
+  let sizeAdjust = 0
+  if (sizeGb !== null) {
+    if (sizeGb < 120) sizeAdjust = -25
+    else if (sizeGb < 250) sizeAdjust = -12
+    else if (sizeGb < 500) sizeAdjust = -6
+    else if (sizeGb >= 2000) sizeAdjust = 4
+  }
+
+  let tip = ''
+  if (sizeGb !== null && sizeGb < 32) {
+    tip = 'That looks unusually small for storage. If you meant memory, put it in the RAM field; storage is usually 256GB or more.'
+  }
+
+  const score = Math.max(5, Math.min(95, base + sizeAdjust))
+  const kind = sizeLabel ? `${sizeLabel} ${typeLabel}` : typeLabel
+  return { score, kind, estimated, tip }
 }
 
 // Scores every component 0-100, then finds the one dragging the build down
@@ -145,9 +187,14 @@ export function assessBuild(build, useCase) {
     reasons.push(`Your storage looks like a ${storage.kind}, which scores ${storage.score}/100.`)
   } else if (storage.estimated) {
     softCount += 1
-    reasons.push(`We couldn't tell if your storage is an SSD or hard drive, so we assumed an SSD (${storage.score}/100).`)
+    reasons.push(
+      `We read your storage as a ${storage.kind} since you didn't say SSD or hard drive, scoring it ${storage.score}/100.`,
+    )
   } else {
     reasons.push('No storage was listed, so it was left out of the comparison.')
+  }
+  if (storage.tip) {
+    reasons.push(storage.tip)
   }
 
   const scores = {
