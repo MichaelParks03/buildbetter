@@ -13,3 +13,6 @@ server/.env
 
 # Netlify local state
 .netlify
+
+# Graphify analysis output (generated)
+graphify-out/
